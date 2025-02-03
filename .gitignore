@@ -1,0 +1,12 @@
+# Ignore Python script
+generate_project_summary.py
+
+# Ignore text file
+logicmodelui_project_summary.txt
+
+# Ignore Pipenv files
+Pipfile
+Pipfile.lock
+
+# Ignore virtual environment folder
+.venv/

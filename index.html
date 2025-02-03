@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ロジックモデル描画</title>
+  <script src="https://unpkg.com/viz.js"></script>
+  <script src="https://unpkg.com/viz.js/full.render.js"></script>
+  <style>
+    body {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    #commands {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    #output {
+      width: 100%;
+      text-align: center;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    select {
+      padding: 5px;
+      margin-right: 10px;
+    }
+    label {
+      margin-right: 5px;
+    }
+    button {
+      padding: 5px 10px;
+      margin-right: 10px;
+    }
+    .copy-success {
+      color: green;
+      display: none;
+      margin-left: 10px;
+    }
+    /* 非表示のcanvas */
+    #tempCanvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="10" oninput="processCommands()"></textarea>
+  <br>
+  <div class="controls">
+    <label for="splineType">線のスタイル:</label>
+    <select id="splineType" onchange="processCommands()">
+      <option value="line">直線</option>
+      <option value="spline">曲線</option>
+    </select>
+    
+    <label for="edgeType">エッジのスタイル:</label>
+    <select id="edgeType" onchange="processCommands()">
+      <option value="line">線</option>
+      <option value="arrow">矢印</option>
+    </select>
+    
+    <button onclick="clearAll()">クリア</button>
+    <button id="downloadPngButton" onclick="downloadPNG()">PNGとしてダウンロード</button>
+    <button id="downloadSvgButton" onclick="downloadSVG()">SVGとしてダウンロード</button>
+    <span id="copySuccess" class="copy-success">✓ コピーしました</span>
+  </div>
+  <div id="output"></div>
+  <canvas id="tempCanvas"></canvas>
+
+  <script>
+    let lastProcessTime = 0;
+    const DEBOUNCE_TIME = 300;
+
+    function showCopySuccess() {
+      const successMsg = document.getElementById('copySuccess');
+      successMsg.style.display = 'inline';
+      setTimeout(() => {
+        successMsg.style.display = 'none';
+      }, 2000);
+    }
+
+    function downloadPNG() {
+        const svg = document.querySelector('#output svg');
+        if (!svg) {
+            alert('ロジックモデルが生成されていません');
+            return;
+        }
+
+        const serializer = new XMLSerializer();
+        const svgData = serializer.serializeToString(svg);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        const image = new Image();
+        image.onload = () => {
+            const padding = 40;
+            const canvas = document.createElement("canvas");
+            canvas.width = image.width + padding * 2;
+            canvas.height = image.height + padding * 2;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, padding, padding);
+            canvas.toBlob(blob => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "logic_model.png";
+            a.click();
+            URL.revokeObjectURL(a.href);
+            });
+            URL.revokeObjectURL(url);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(url);
+            alert('画像の生成に失敗しました');
+        };
+        image.src = url;
+        }
+
+        function downloadSVG() {
+        const svg = document.querySelector('#output svg');
+        if (!svg) {
+            alert('ロジックモデルが生成されていません');
+            return;
+        }
+        const serializer = new XMLSerializer();
+        const svgString = serializer.serializeToString(svg);
+        const blob = new Blob([svgString], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "logic_model.svg";
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function generateDot(commands) {
+      const model = {
+        title: "",
+        elements: {},
+        relations: [],
+      };
+
+      const lines = commands.split(";").map(line => line.trim()).filter(line => line.length > 0);
+
+      lines.forEach(line => {
+        const tokens = line.split(" ").filter(token => token.length > 0);
+        const command = tokens.shift();
+
+        if (command === "TITLE") {
+          model.title = line.slice(7, -1);
+        } else if (command === "CREATE") {
+          const elements = line.slice(7).split(",");
+          elements.forEach(element => {
+            // 最初のスペースの位置を見つける
+            const firstSpace = element.trim().indexOf(" ");
+            // IDと残りの文字列（ラベル）を分割
+            const id = element.trim().slice(0, firstSpace);
+            const label = element.trim().slice(firstSpace + 1);
+            model.elements[id] = label.slice(1, -1);
+          });
+        } else if (command === "RELATE") {
+          const pairs = line.slice(7).split(",");
+          pairs.forEach(pair => {
+            const [id1, id2] = pair.trim().split(" ");
+            model.relations.push({ from: id1, to: id2 });
+          });
+        }
+      });
+
+      const splineType = document.getElementById('splineType').value;
+      const edgeType = document.getElementById('edgeType').value;
+
+      let dotData = `digraph G {
+        graph [
+            fontname="Arial"
+            splines="${splineType}"
+            rankdir="LR"
+            center=true
+        ];
+        node [
+            fontname="Arial"
+            shape="box"
+            style="filled"
+            fillcolor="white"
+        ];
+        edge [fontname="Arial"${edgeType === "line" ? ", arrowhead=none" : ""}];
+
+        label="${model.title}";
+        labelloc="t";
+        fontsize=24;
+
+        `;
+
+      const categories = ["input", "activity", "output", "outcome", "impact"];
+
+      categories.forEach(category => {
+        dotData += `subgraph cluster_${category} {
+        style="filled";
+        color="transparent";
+        fillcolor="#f5f5f5";
+        label="${category}"\n`;
+
+        for (const id in model.elements) {
+          if (id.startsWith(category.slice(0, -1))) {
+            dotData += `${id} [label="${model.elements[id].split("\\n").join("\\n")}"]\n`;
+          }
+        }
+
+        dotData += "}\n";
+      });
+
+      model.relations.forEach(relation => {
+        dotData += `${relation.from} -> ${relation.to}\n [tailport = e, headport = w]`;
+      });
+
+      dotData += "}\n";
+
+      return dotData;
+    }
+
+    async function renderLogicModel(dotText) {
+      try {
+        const viz = new Viz();
+        const svg = await viz.renderSVGElement(dotText);
+        svg.style.maxWidth = '100%';
+        output.innerHTML = '';
+        output.appendChild(svg);
+      } catch (error) {
+        console.error('Error rendering logic model:', error);
+        output.innerHTML = '<p style="color: red;">エラーが発生しました</p>';
+      }
+    }
+
+    async function processCommands() {
+      const currentTime = Date.now();
+      if (currentTime - lastProcessTime < DEBOUNCE_TIME) {
+        return;
+      }
+      lastProcessTime = currentTime;
+
+      const commands = document.getElementById('commands').value;
+      if (commands.trim() === '') {
+        document.getElementById('output').innerHTML = '';
+        return;
+      }
+      const dotData = generateDot(commands);
+      await renderLogicModel(dotData);
+    }
+
+    function clearAll() {
+      document.getElementById('commands').value = '';
+      document.getElementById('output').innerHTML = '';
+    }
+  </script>
+</body>
+</html>

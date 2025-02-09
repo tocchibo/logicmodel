@@ -214,3 +214,11 @@ function addNewElement() {
     hideEditPanel();
     reRenderModel();
 }
+
+// ページ全体のクリックイベント：編集パネル以外の場所をクリックしたら選択解除
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#editPanel')) {
+    clearSelection();
+    hideEditPanel();
+  }
+});

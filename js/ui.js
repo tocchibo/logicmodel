@@ -178,18 +178,21 @@ function hideEditPanel() {
     window.currentEditingType = null;
 }
 
-// 「要素の追加」ボタンのハンドラ
+// 「要素の追加」ボタンのハンドラ（修正済み）
 document.getElementById('addElementButton').addEventListener('click', function(e) {
+    // クリック時のイベントのバブリングを止めることで、グローバルなクリックイベントに引っかからないようにする
+    e.stopPropagation();
+    
     const panel = document.getElementById('editPanel');
     panel.style.left = e.clientX + "px";
     panel.style.top = e.clientY + "px";
     panel.innerHTML = `
         <div>
-            <label>ラベル: </label>
+            <label for="newElementLabel">ラベル: </label>
             <input type="text" id="newElementLabel" value="">
         </div>
         <div>
-            <label>カテゴリー: </label>
+            <label for="newElementCategory">カテゴリー: </label>
             <select id="newElementCategory">
                 <option value="input">input</option>
                 <option value="activity">activity</option>
@@ -204,7 +207,13 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     panel.style.display = "block";
 });
 
+
 function addNewElement() {
+    // logicModelData が null なら初期化する
+    if (!logicModelData) {
+        logicModelData = { title: "", elements: {}, relations: [] };
+    }
+    
     const label = document.getElementById('newElementLabel').value.trim();
     const category = document.getElementById('newElementCategory').value;
     if (!label) return;
@@ -214,6 +223,7 @@ function addNewElement() {
     hideEditPanel();
     reRenderModel();
 }
+
 
 // ページ全体のクリックイベント：編集パネル以外の場所をクリックしたら選択解除
 document.addEventListener('click', function(e) {

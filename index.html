@@ -29,7 +29,9 @@
     <button id="downloadPngButton" onclick="downloadPNG()">PNGとしてダウンロード</button>
     <button id="downloadSvgButton" onclick="downloadSVG()">SVGとしてダウンロード</button>
     <button id="addElementButton">要素の追加</button>
+    <button id="copyCommandsButton" onclick="outputCommands()">コマンド出力</button>
     <span id="copySuccess" class="copy-success">✓ コピーしました</span>
+
   </div>
   <div id="output"></div>
   <canvas id="tempCanvas"></canvas>
@@ -43,5 +45,6 @@
   <script src="js/logicModel.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/commandsGenerator.js"></script>
 </body>
 </html>

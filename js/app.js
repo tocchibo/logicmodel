@@ -43,10 +43,12 @@ function updateElementCounters() {
 }
 
 function clearAll() {
-    document.getElementById('commands').value = '';
-    document.getElementById('output').innerHTML = '';
-    logicModelData = null;
+  document.getElementById('commands').value = '';
+  document.getElementById('output').innerHTML = '';
+  // 空のモデルに初期化
+  logicModelData = { title: "", elements: {}, relations: [] };
 }
+
 
 // splineType や edgeType の変更時に再描画
 async function reRenderModel() {

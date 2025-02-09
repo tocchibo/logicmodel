@@ -1,0 +1,873 @@
+# logicmodel
+
+## Directory Structure
+
+- logicmodel/
+  - .venv/
+  - css/
+    - style.css
+  - index.html
+  - js/
+    - app.js
+    - commandsGenerator.js
+    - downloads.js
+    - logicModel.js
+    - ui.js
+
+## File Contents
+
+### css\style.css
+
+```
+body {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+#commands {
+  width: 100%;
+  margin-bottom: 20px;
+}
+#output {
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+.controls {
+  margin-bottom: 20px;
+}
+select {
+  padding: 5px;
+  margin-right: 10px;
+}
+label {
+  margin-right: 5px;
+}
+button {
+  padding: 5px 10px;
+  margin-right: 10px;
+}
+.copy-success {
+  color: green;
+  display: none;
+  margin-left: 10px;
+}
+/* 非表示のcanvas */
+#tempCanvas {
+  display: none;
+}
+
+/* 編集パネル用スタイル */
+.edit-panel {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 1000;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+}
+.context-menu {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 5px;
+  z-index: 1000;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+}
+/* マウスオーバー・選択時のハイライト */
+.node-hover {
+  stroke: red !important;
+  stroke-width: 3px !important;
+  cursor: pointer;
+}
+.node-selected {
+  stroke: blue !important;
+  stroke-width: 3px !important;
+  cursor: pointer;
+}
+.edge-hover {
+  stroke: red !important;
+  stroke-width: 3px !important;
+  cursor: pointer;
+}
+
+```
+
+### index.html
+
+```
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ロジックモデル描画・編集</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Viz.js CDN -->
+  <script src="https://unpkg.com/viz.js"></script>
+  <script src="https://unpkg.com/viz.js/full.render.js"></script>
+</head>
+<body>
+  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="10" oninput="processCommands()"></textarea>
+  <br>
+  <div class="controls">
+    <label for="splineType">線のスタイル:</label>
+    <select id="splineType" onchange="reRenderModel()">
+      <option value="line">直線</option>
+      <option value="spline">曲線</option>
+    </select>
+    
+    <label for="edgeType">エッジのスタイル:</label>
+    <select id="edgeType" onchange="reRenderModel()">
+      <option value="line">線</option>
+      <option value="arrow">矢印</option>
+    </select>
+    
+    <button onclick="clearAll()">クリア</button>
+    <button id="downloadPngButton" onclick="downloadPNG()">PNGとしてダウンロード</button>
+    <button id="downloadSvgButton" onclick="downloadSVG()">SVGとしてダウンロード</button>
+    <button id="addElementButton">要素の追加</button>
+    <button id="copyCommandsButton" onclick="outputCommands()">コマンド出力</button>
+    <span id="copySuccess" class="copy-success">✓ コピーしました</span>
+
+  </div>
+  <div id="output"></div>
+  <canvas id="tempCanvas"></canvas>
+
+  <!-- 編集用のポップアップパネル -->
+  <div id="editPanel" class="edit-panel" style="display:none;">
+    <div id="editContent"></div>
+  </div>
+
+  <script src="js/downloads.js"></script>
+  <script src="js/logicModel.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/commandsGenerator.js"></script>
+</body>
+</html>
+
+```
+
+### js\app.js
+
+```
+/* js/app.js */
+let lastProcessTime = 0;
+const DEBOUNCE_TIME = 300;
+let logicModelData = null;  // 内部で保持するJSON形式のロジックモデル
+// 各カテゴリーごとのユニークなID生成用カウンター
+let elementCounters = {
+    input: 1,
+    activity: 1,
+    output: 1,
+    outcome: 1,
+    impact: 1
+};
+
+async function processCommands() {
+    const currentTime = Date.now();
+    if (currentTime - lastProcessTime < DEBOUNCE_TIME) {
+        return;
+    }
+    lastProcessTime = currentTime;
+
+    const commands = document.getElementById('commands').value;
+    if (commands.trim() === '') {
+        document.getElementById('output').innerHTML = '';
+        return;
+    }
+    // コマンドをパースして内部JSONモデルに変換
+    logicModelData = parseCommands(commands);
+    // 既存要素からカウンターを更新
+    updateElementCounters();
+    await renderLogicModelFromJSON(logicModelData);
+}
+
+function updateElementCounters() {
+    elementCounters = { input: 1, activity: 1, output: 1, outcome: 1, impact: 1 };
+    for (const id in logicModelData.elements) {
+        const elem = logicModelData.elements[id];
+        const cat = elem.category;
+        const num = parseInt(id.replace(cat, '')) || 0;
+        if (num >= elementCounters[cat]) {
+            elementCounters[cat] = num + 1;
+        }
+    }
+}
+
+function clearAll() {
+    document.getElementById('commands').value = '';
+    document.getElementById('output').innerHTML = '';
+    logicModelData = null;
+}
+
+// splineType や edgeType の変更時に再描画
+async function reRenderModel() {
+    if (logicModelData) {
+        await renderLogicModelFromJSON(logicModelData);
+    }
+}
+
+// Global delete キーイベント（編集中の対象を削除）
+document.addEventListener('keydown', function(e) {
+    if (e.key === "Delete") {
+        if (window.currentEditingType === "element" && window.currentEditingId) {
+            deleteElement(window.currentEditingId);
+        } else if (window.currentEditingType === "edge" && window.currentEditingEdge) {
+            deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
+        }
+    }
+});
+
+```
+
+### js\commandsGenerator.js
+
+```
+/**
+ * 内部JSON（logicModelData）からコマンド文字列を生成する関数
+ * 例：
+ * {
+ *    title: "プラスチック資源循環事業",
+ *    elements: {
+ *       "input1": { id: "input1", label: "投資資金", category: "input" },
+ *       "activity1": { id: "activity1", label: "プラスチック\n回収", category: "activity" },
+ *       …  // その他の要素
+ *    },
+ *    relations: [
+ *       { from: "input1", to: "activity1" },
+ *       …  // その他の関係
+ *    ]
+ * }
+ */
+function generateCommandsFromModel(model) {
+    // 改行文字を "\n" のリテラルに変換するヘルパー関数
+    function formatLabel(label) {
+      return label.replace(/\r\n|\r|\n/g, '\\n');
+    }
+  
+    let output = "";
+  
+    // STEP 1
+    output += "STEP 1;\n";
+    if (model.title && model.title.trim() !== "") {
+      output += `TITLE "${model.title}";\n`;
+    }
+    // STEP 1：input と activity の要素を抽出
+    const inputs = [];
+    const activities = [];
+    for (const id in model.elements) {
+      const elem = model.elements[id];
+      if (elem.category === "input") {
+        inputs.push(elem);
+      } else if (elem.category === "activity") {
+        activities.push(elem);
+      }
+    }
+    if (inputs.length > 0) {
+      output += "CREATE " + inputs.map(elem => `${elem.id} "${formatLabel(elem.label)}"`).join(", ") + ";\n";
+    }
+    if (activities.length > 0) {
+      output += "CREATE " + activities.map(elem => `${elem.id} "${formatLabel(elem.label)}"`).join(", ") + ";\n";
+    }
+    // STEP 1：input -> activity の関係をグループ化して出力
+    const relGroupsStep1 = {};
+    model.relations.forEach(rel => {
+      const fromElem = model.elements[rel.from];
+      const toElem = model.elements[rel.to];
+      if (fromElem && toElem && fromElem.category === "input" && toElem.category === "activity") {
+        if (!relGroupsStep1[rel.from]) relGroupsStep1[rel.from] = [];
+        relGroupsStep1[rel.from].push(rel.to);
+      }
+    });
+    for (const from in relGroupsStep1) {
+      output += "RELATE " + relGroupsStep1[from].map(to => `${from} ${to}`).join(", ") + ";\n";
+    }
+  
+    // STEP 2
+    output += "\nSTEP 2;\n";
+    // STEP 2：output 要素の抽出
+    const outputs = [];
+    for (const id in model.elements) {
+      const elem = model.elements[id];
+      if (elem.category === "output") {
+        outputs.push(elem);
+      }
+    }
+    if (outputs.length > 0) {
+      output += "CREATE " + outputs.map(elem => `${elem.id} "${formatLabel(elem.label)}"`).join(", ") + ";\n";
+    }
+    // STEP 2：activity -> output の関係
+    const relGroupsStep2 = {};
+    model.relations.forEach(rel => {
+      const fromElem = model.elements[rel.from];
+      const toElem = model.elements[rel.to];
+      if (fromElem && toElem && fromElem.category === "activity" && toElem.category === "output") {
+        if (!relGroupsStep2[rel.from]) relGroupsStep2[rel.from] = [];
+        relGroupsStep2[rel.from].push(rel.to);
+      }
+    });
+    for (const from in relGroupsStep2) {
+      output += "RELATE " + relGroupsStep2[from].map(to => `${from} ${to}`).join(", ") + ";\n";
+    }
+  
+    // STEP 3
+    output += "\nSTEP 3;\n";
+    // STEP 3：outcome 要素の抽出
+    const outcomes = [];
+    for (const id in model.elements) {
+      const elem = model.elements[id];
+      if (elem.category === "outcome") {
+        outcomes.push(elem);
+      }
+    }
+    if (outcomes.length > 0) {
+      output += "CREATE " + outcomes.map(elem => `${elem.id} "${formatLabel(elem.label)}"`).join(", ") + ";\n";
+    }
+    // STEP 3：output -> outcome および outcome -> outcome の関係
+    const relGroupsStep3 = {};
+    model.relations.forEach(rel => {
+      const fromElem = model.elements[rel.from];
+      const toElem = model.elements[rel.to];
+      if (fromElem && toElem) {
+        if (fromElem.category === "output" && toElem.category === "outcome") {
+          if (!relGroupsStep3[rel.from]) relGroupsStep3[rel.from] = [];
+          relGroupsStep3[rel.from].push(rel.to);
+        } else if (fromElem.category === "outcome" && toElem.category === "outcome") {
+          if (!relGroupsStep3[rel.from]) relGroupsStep3[rel.from] = [];
+          relGroupsStep3[rel.from].push(rel.to);
+        }
+      }
+    });
+    for (const from in relGroupsStep3) {
+      output += "RELATE " + relGroupsStep3[from].map(to => `${from} ${to}`).join(", ") + ";\n";
+    }
+  
+    // STEP 4
+    output += "\nSTEP 4;\n";
+    // STEP 4：impact 要素の抽出
+    const impacts = [];
+    for (const id in model.elements) {
+      const elem = model.elements[id];
+      if (elem.category === "impact") {
+        impacts.push(elem);
+      }
+    }
+    if (impacts.length > 0) {
+      output += "CREATE " + impacts.map(elem => `${elem.id} "${formatLabel(elem.label)}"`).join(", ") + ";\n";
+    }
+    // STEP 4：outcome -> impact の関係
+    const relGroupsStep4 = {};
+    model.relations.forEach(rel => {
+      const fromElem = model.elements[rel.from];
+      const toElem = model.elements[rel.to];
+      if (fromElem && toElem && fromElem.category === "outcome" && toElem.category === "impact") {
+        if (!relGroupsStep4[rel.from]) relGroupsStep4[rel.from] = [];
+        relGroupsStep4[rel.from].push(rel.to);
+      }
+    });
+    for (const from in relGroupsStep4) {
+      output += "RELATE " + relGroupsStep4[from].map(to => `${from} ${to}`).join(", ") + ";\n";
+    }
+  
+    output += "\nCOMPLETE;";
+    return output;
+  }
+  
+  /**
+   * コマンド出力ボタン押下時の処理
+   * 内部の logicModelData からコマンド文字列を生成し、クリップボードへコピーします。
+   */
+  function outputCommands() {
+    if (!logicModelData) {
+      alert("ロジックモデルのデータが存在しません。");
+      return;
+    }
+    const commandsText = generateCommandsFromModel(logicModelData);
+    
+    // Clipboard API でコピー
+    navigator.clipboard.writeText(commandsText)
+      .then(() => {
+        // コピー成功時、成功メッセージを表示
+        showCopySuccess();
+      })
+      .catch((err) => {
+        console.error("コマンドのコピーに失敗しました:", err);
+        alert("コマンドのコピーに失敗しました。");
+      });
+  }
+  
+  /**
+   * コピー成功時のメッセージ表示
+   */
+  function showCopySuccess() {
+    const successMsg = document.getElementById('copySuccess');
+    successMsg.style.display = 'inline';
+    setTimeout(() => {
+      successMsg.style.display = 'none';
+    }, 2000);
+  }
+  
+```
+
+### js\downloads.js
+
+```
+function downloadPNG() {
+  const svg = document.querySelector('#output svg');
+  if (!svg) {
+    alert('ロジックモデルが生成されていません');
+    return;
+  }
+
+  const serializer = new XMLSerializer();
+  const svgData = serializer.serializeToString(svg);
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const image = new Image();
+  image.onload = () => {
+    const padding = 40;
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width + padding * 2;
+    canvas.height = image.height + padding * 2;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, padding, padding);
+    canvas.toBlob(blob => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "logic_model.png";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    URL.revokeObjectURL(url);
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    alert('画像の生成に失敗しました');
+  };
+  image.src = url;
+}
+
+function downloadSVG() {
+  const svg = document.querySelector('#output svg');
+  if (!svg) {
+    alert('ロジックモデルが生成されていません');
+    return;
+  }
+  const serializer = new XMLSerializer();
+  const svgString = serializer.serializeToString(svg);
+  const blob = new Blob([svgString], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "logic_model.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+```
+
+### js\logicModel.js
+
+```
+/* js/logicModel.js */
+
+// ヘルパー関数：引用符内のカンマを無視して文字列を分割
+function splitRespectingQuotes(str, delimiter) {
+  const result = [];
+  let current = "";
+  let insideQuotes = false;
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+      current += char;
+    } else if (char === delimiter && !insideQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim().length > 0) {
+    result.push(current.trim());
+  }
+  return result;
+}
+
+function parseCommands(input) {
+  const model = {
+    title: "",
+    elements: {},
+    relations: [],
+  };
+
+  // セミコロン（;）で各コマンドを分割
+  const commands = input
+    .split(";")
+    .map(cmd => cmd.trim())
+    .filter(cmd => cmd.length > 0);
+
+  commands.forEach(cmd => {
+    // コマンドタイプを抽出（TITLE, CREATE, RELATE, STEP, COMPLETE）
+    const match = cmd.match(/^(\w+)\b(.*)$/);
+    if (!match) return;
+    const commandType = match[1].toUpperCase();
+    const rest = match[2].trim();
+
+    switch (commandType) {
+      case "TITLE":
+        // TITLE "タイトル"
+        const titleMatch = rest.match(/^"(.*)"$/);
+        if (titleMatch) {
+          model.title = titleMatch[1];
+        }
+        break;
+
+      case "CREATE":
+        // CREATE {element_id} "ラベル", {element_id} "ラベル", ...
+        const elementsList = splitRespectingQuotes(rest, ",");
+        elementsList.forEach(item => {
+          const elementMatch = item.match(/^(\S+)\s+"(.*)"$/);
+          if (elementMatch) {
+            const id = elementMatch[1];
+            const label = elementMatch[2];
+            // id の先頭（input, activity, …）からカテゴリーを判定
+            const catMatch = id.match(/^(input|activity|output|outcome|impact)/i);
+            const category = catMatch ? catMatch[1].toLowerCase() : "unknown";
+            model.elements[id] = { id, label, category };
+          }
+        });
+        break;
+
+      case "RELATE":
+        // RELATE {element_id1} {element_id2}, {element_id1} {element_id2}, ...
+        const relationsList = splitRespectingQuotes(rest, ",");
+        relationsList.forEach(item => {
+          const tokens = item.trim().split(/\s+/);
+          if (tokens.length === 2) {
+            model.relations.push({ from: tokens[0], to: tokens[1] });
+          }
+        });
+        break;
+
+      // STEP, COMPLETE などは表示上の補助なので無視
+      case "STEP":
+      case "COMPLETE":
+        break;
+
+      default:
+        break;
+    }
+  });
+
+  return model;
+}
+
+function generateDotFromModel(model) {
+  const splineType = document.getElementById("splineType").value;
+  const edgeType = document.getElementById("edgeType").value;
+
+  let dotData = `digraph G {
+    graph [
+      fontname="Arial"
+      splines="${splineType}"
+      rankdir="LR"
+      center=true
+    ];
+    node [
+      fontname="Arial"
+      shape="box"
+      style="filled"
+      fillcolor="white"
+    ];
+    edge [fontname="Arial"${edgeType === "line" ? ", arrowhead=none" : ""}];
+
+    label="${model.title}";
+    labelloc="t";
+    fontsize=24;
+
+  `;
+
+  const categories = ["input", "activity", "output", "outcome", "impact"];
+  categories.forEach(category => {
+    dotData += `subgraph cluster_${category} {
+      style="filled";
+      color="transparent";
+      fillcolor="#f5f5f5";
+      label="${category}"\n`;
+
+    for (const id in model.elements) {
+      const element = model.elements[id];
+      if (element.category === category) {
+        const label = element.label.split("\\n").join("\\n");
+        // ノードに id 属性を付与（例：node_input1）
+        dotData += `${id} [label="${label}", id="node_${id}"]\n`;
+      }
+    }
+    dotData += "}\n";
+  });
+
+  model.relations.forEach(relation => {
+    // エッジにも id 属性を付与（例：edge_input1_activity2）
+    dotData += `${relation.from} -> ${relation.to} [id="edge_${relation.from}_${relation.to}"]\n`;
+  });
+
+  dotData += "}\n";
+  return dotData;
+}
+
+async function renderLogicModelFromJSON(model) {
+  const dotData = generateDotFromModel(model);
+  try {
+    const viz = new Viz();
+    const svg = await viz.renderSVGElement(dotData);
+    svg.style.maxWidth = "100%";
+    const output = document.getElementById("output");
+    output.innerHTML = "";
+    output.appendChild(svg);
+    // SVG 内のノード・エッジに対して編集用のイベントハンドラを設定
+    attachSvgEventHandlers();
+  } catch (error) {
+    console.error("Error rendering logic model:", error);
+    const output = document.getElementById("output");
+    output.innerHTML = '<p style="color: red;">エラーが発生しました</p>';
+  }
+}
+
+```
+
+### js\ui.js
+
+```
+/* js/ui.js */
+
+let selectedNodesForRelation = []; // 関係追加のために ctrl＋クリックで選択した要素
+window.currentEditingId = null;      // 現在編集中の要素ID（elementの場合）
+window.currentEditingType = null;    // "element" または "edge"
+window.currentEditingEdge = null;    // { from, to }（edgeの場合）
+
+// SVG描画後に各ノード・エッジにイベントを設定
+function attachSvgEventHandlers() {
+    const svg = document.querySelector('#output svg');
+    if (!svg) return;
+    
+    // ノード（通常は g.node）
+    const nodes = svg.querySelectorAll('g.node');
+    nodes.forEach(node => {
+        node.style.cursor = "pointer";
+        // マウスオーバーでハイライト
+        node.addEventListener('mouseover', function() {
+            node.classList.add('node-hover');
+        });
+        node.addEventListener('mouseout', function() {
+            node.classList.remove('node-hover');
+        });
+        node.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // 多くの場合、ノード内に <title> 要素があり、そこに id が入っている
+            const nodeId = node.querySelector('title').textContent.trim();
+            if (e.ctrlKey) {
+                // ctrl＋クリックなら関係追加用の選択
+                handleNodeRelationSelection(node, nodeId);
+            } else {
+                // 通常クリックなら編集パネルを表示
+                window.currentEditingType = "element";
+                window.currentEditingId = nodeId;
+                showEditPanelForElement(node, nodeId, e);
+            }
+        });
+    });
+    
+    // エッジ（通常は g.edge）
+    const edges = svg.querySelectorAll('g.edge');
+    edges.forEach(edge => {
+        edge.style.cursor = "pointer";
+        edge.addEventListener('mouseover', function() {
+            edge.classList.add('edge-hover');
+        });
+        edge.addEventListener('mouseout', function() {
+            edge.classList.remove('edge-hover');
+        });
+        edge.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // エッジ内の <title> から "from -> to" の情報を取得
+            const edgeTitle = edge.querySelector('title');
+            if (edgeTitle) {
+                const edgeId = edgeTitle.textContent.trim();
+                const parts = edgeId.split("->").map(s => s.trim());
+                if (parts.length === 2) {
+                    window.currentEditingType = "edge";
+                    window.currentEditingEdge = { from: parts[0], to: parts[1] };
+                    showEditPanelForEdge(edge, window.currentEditingEdge, e);
+                }
+            }
+        });
+    });
+    
+    // SVGの空白部分をクリックしたときは選択解除・パネル非表示
+    svg.addEventListener('click', function(e) {
+        clearSelection();
+        hideEditPanel();
+    });
+}
+
+function handleNodeRelationSelection(node, nodeId) {
+    if (selectedNodesForRelation.includes(nodeId)) {
+        // 既に選択済みなら解除
+        selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
+        node.classList.remove('node-selected');
+    } else {
+        selectedNodesForRelation.push(nodeId);
+        node.classList.add('node-selected');
+    }
+    if (selectedNodesForRelation.length === 2) {
+        const [from, to] = selectedNodesForRelation;
+        addRelation(from, to);
+        clearSelection();
+        reRenderModel();
+    }
+}
+
+function addRelation(from, to) {
+    const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
+    if (!exists) {
+        logicModelData.relations.push({ from, to });
+    }
+}
+
+function clearSelection() {
+    selectedNodesForRelation = [];
+    const svg = document.querySelector('#output svg');
+    if (svg) {
+        svg.querySelectorAll('g.node').forEach(node => {
+            node.classList.remove('node-selected');
+        });
+    }
+}
+
+function showEditPanelForElement(svgNode, nodeId, event) {
+    const panel = document.getElementById('editPanel');
+    panel.style.left = event.clientX + "px";
+    panel.style.top = event.clientY + "px";
+    const element = logicModelData.elements[nodeId];
+    if (!element) return;
+    panel.innerHTML = `
+        <div>
+            <label>ラベル: </label>
+            <input type="text" id="editLabel" value="${element.label}">
+        </div>
+        <div>
+            <label>カテゴリー: </label>
+            <select id="editCategory">
+                <option value="input" ${element.category==='input'?'selected':''}>input</option>
+                <option value="activity" ${element.category==='activity'?'selected':''}>activity</option>
+                <option value="output" ${element.category==='output'?'selected':''}>output</option>
+                <option value="outcome" ${element.category==='outcome'?'selected':''}>outcome</option>
+                <option value="impact" ${element.category==='impact'?'selected':''}>impact</option>
+            </select>
+        </div>
+        <button onclick="applyElementEdit('${nodeId}')">適用</button>
+        <button onclick="deleteElement('${nodeId}')">削除</button>
+        <button onclick="hideEditPanel()">キャンセル</button>
+    `;
+    panel.style.display = "block";
+}
+
+function applyElementEdit(nodeId) {
+    const newLabel = document.getElementById('editLabel').value;
+    const newCategory = document.getElementById('editCategory').value;
+    if (logicModelData.elements[nodeId]) {
+        logicModelData.elements[nodeId].label = newLabel;
+        logicModelData.elements[nodeId].category = newCategory;
+    }
+    hideEditPanel();
+    reRenderModel();
+}
+
+function deleteElement(nodeId) {
+    delete logicModelData.elements[nodeId];
+    logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
+    hideEditPanel();
+    reRenderModel();
+}
+
+function showEditPanelForEdge(edgeElement, edgeData, event) {
+    const panel = document.getElementById('editPanel');
+    panel.style.left = event.clientX + "px";
+    panel.style.top = event.clientY + "px";
+    panel.innerHTML = `
+        <div>
+            <p>関係: ${edgeData.from} → ${edgeData.to}</p>
+        </div>
+        <button onclick="deleteEdge('${edgeData.from}', '${edgeData.to}')">削除</button>
+        <button onclick="hideEditPanel()">キャンセル</button>
+    `;
+    panel.style.display = "block";
+}
+
+function deleteEdge(from, to) {
+    logicModelData.relations = logicModelData.relations.filter(rel => !(rel.from === from && rel.to === to));
+    hideEditPanel();
+    reRenderModel();
+}
+
+function hideEditPanel() {
+    const panel = document.getElementById('editPanel');
+    panel.style.display = "none";
+    window.currentEditingId = null;
+    window.currentEditingEdge = null;
+    window.currentEditingType = null;
+}
+
+// 「要素の追加」ボタンのハンドラ
+document.getElementById('addElementButton').addEventListener('click', function(e) {
+    const panel = document.getElementById('editPanel');
+    panel.style.left = e.clientX + "px";
+    panel.style.top = e.clientY + "px";
+    panel.innerHTML = `
+        <div>
+            <label>ラベル: </label>
+            <input type="text" id="newElementLabel" value="">
+        </div>
+        <div>
+            <label>カテゴリー: </label>
+            <select id="newElementCategory">
+                <option value="input">input</option>
+                <option value="activity">activity</option>
+                <option value="output">output</option>
+                <option value="outcome">outcome</option>
+                <option value="impact">impact</option>
+            </select>
+        </div>
+        <button onclick="addNewElement()">追加</button>
+        <button onclick="hideEditPanel()">キャンセル</button>
+    `;
+    panel.style.display = "block";
+});
+
+function addNewElement() {
+    const label = document.getElementById('newElementLabel').value.trim();
+    const category = document.getElementById('newElementCategory').value;
+    if (!label) return;
+    const id = category + elementCounters[category];
+    elementCounters[category]++;
+    logicModelData.elements[id] = { id, label, category };
+    hideEditPanel();
+    reRenderModel();
+}
+
+// ページ全体のクリックイベント：編集パネル以外の場所をクリックしたら選択解除
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#editPanel')) {
+    clearSelection();
+    hideEditPanel();
+  }
+});
+
+```
+

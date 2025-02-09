@@ -232,3 +232,27 @@ document.addEventListener('click', function(e) {
     hideEditPanel();
   }
 });
+
+// 編集ヘルプボタンのイベントハンドラ
+document.getElementById('helpButton').addEventListener('click', function(e) {
+    // クリック時にグローバルなクリックイベントへ伝播しないようにする
+    e.stopPropagation();
+    
+    // editPanel を表示する
+    const panel = document.getElementById('editPanel');
+    panel.style.left = e.clientX + "px";
+    panel.style.top = e.clientY + "px";
+    panel.innerHTML = `
+       <div>
+         <h3>編集方法のヘルプ</h3>
+         <p>・「要素の追加」ボタンをクリックすると、新しい要素を追加できます。</p>
+         <p>・既存の要素をクリックすると、編集または削除が可能なポップアップが表示されます。</p>
+         <p>・Ctrlキーを押しながら2つの要素をクリックすると、その間に関係を追加できます。</p>
+         <p>・エッジ（関係）をクリックすると、関係の削除が可能です。</p>
+         <p>・ページ内の何もないところをクリックすると、選択状態が解除されます。</p>
+         <button onclick="hideEditPanel()">閉じる</button>
+       </div>
+    `;
+    panel.style.display = "block";
+});
+

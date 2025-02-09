@@ -2,7 +2,7 @@
 generate_project_summary.py
 
 # Ignore text file
-logicmodelui_project_summary.txt
+logicmodel_project_summary.txt
 
 # Ignore Pipenv files
 Pipfile

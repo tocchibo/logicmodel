@@ -128,6 +128,7 @@ button {
     <button id="downloadSvgButton" onclick="downloadSVG()">SVGとしてダウンロード</button>
     <button id="addElementButton">要素の追加</button>
     <button id="copyCommandsButton" onclick="outputCommands()">コマンド出力</button>
+    <button id="helpButton">編集ヘルプ</button>
     <span id="copySuccess" class="copy-success">✓ コピーしました</span>
 
   </div>
@@ -197,10 +198,12 @@ function updateElementCounters() {
 }
 
 function clearAll() {
-    document.getElementById('commands').value = '';
-    document.getElementById('output').innerHTML = '';
-    logicModelData = null;
+  document.getElementById('commands').value = '';
+  document.getElementById('output').innerHTML = '';
+  // 空のモデルに初期化
+  logicModelData = { title: "", elements: {}, relations: [] };
 }
+
 
 // splineType や edgeType の変更時に再描画
 async function reRenderModel() {
@@ -824,18 +827,21 @@ function hideEditPanel() {
     window.currentEditingType = null;
 }
 
-// 「要素の追加」ボタンのハンドラ
+// 「要素の追加」ボタンのハンドラ（修正済み）
 document.getElementById('addElementButton').addEventListener('click', function(e) {
+    // クリック時のイベントのバブリングを止めることで、グローバルなクリックイベントに引っかからないようにする
+    e.stopPropagation();
+    
     const panel = document.getElementById('editPanel');
     panel.style.left = e.clientX + "px";
     panel.style.top = e.clientY + "px";
     panel.innerHTML = `
         <div>
-            <label>ラベル: </label>
+            <label for="newElementLabel">ラベル: </label>
             <input type="text" id="newElementLabel" value="">
         </div>
         <div>
-            <label>カテゴリー: </label>
+            <label for="newElementCategory">カテゴリー: </label>
             <select id="newElementCategory">
                 <option value="input">input</option>
                 <option value="activity">activity</option>
@@ -850,7 +856,13 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     panel.style.display = "block";
 });
 
+
 function addNewElement() {
+    // logicModelData が null なら初期化する
+    if (!logicModelData) {
+        logicModelData = { title: "", elements: {}, relations: [] };
+    }
+    
     const label = document.getElementById('newElementLabel').value.trim();
     const category = document.getElementById('newElementCategory').value;
     if (!label) return;
@@ -861,6 +873,7 @@ function addNewElement() {
     reRenderModel();
 }
 
+
 // ページ全体のクリックイベント：編集パネル以外の場所をクリックしたら選択解除
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#editPanel')) {
@@ -868,6 +881,30 @@ document.addEventListener('click', function(e) {
     hideEditPanel();
   }
 });
+
+// 編集ヘルプボタンのイベントハンドラ
+document.getElementById('helpButton').addEventListener('click', function(e) {
+    // クリック時にグローバルなクリックイベントへ伝播しないようにする
+    e.stopPropagation();
+    
+    // editPanel を表示する
+    const panel = document.getElementById('editPanel');
+    panel.style.left = e.clientX + "px";
+    panel.style.top = e.clientY + "px";
+    panel.innerHTML = `
+       <div>
+         <h3>編集方法のヘルプ</h3>
+         <p>・「要素の追加」ボタンをクリックすると、新しい要素を追加できます。</p>
+         <p>・既存の要素をクリックすると、編集または削除が可能なポップアップが表示されます。</p>
+         <p>・Ctrlキーを押しながら2つの要素をクリックすると、その間に関係を追加できます。</p>
+         <p>・エッジ（関係）をクリックすると、関係の削除が可能です。</p>
+         <p>・ページ内の何もないところをクリックすると、選択状態が解除されます。</p>
+         <button onclick="hideEditPanel()">閉じる</button>
+       </div>
+    `;
+    panel.style.display = "block";
+});
+
 
 ```
 

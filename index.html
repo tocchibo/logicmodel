@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ロジックモデル描画</title>
+  <title>ロジックモデル描画・編集</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Viz.js CDN -->
   <script src="https://unpkg.com/viz.js"></script>
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
 </head>
@@ -13,13 +14,13 @@
   <br>
   <div class="controls">
     <label for="splineType">線のスタイル:</label>
-    <select id="splineType" onchange="processCommands()">
+    <select id="splineType" onchange="reRenderModel()">
       <option value="line">直線</option>
       <option value="spline">曲線</option>
     </select>
     
     <label for="edgeType">エッジのスタイル:</label>
-    <select id="edgeType" onchange="processCommands()">
+    <select id="edgeType" onchange="reRenderModel()">
       <option value="line">線</option>
       <option value="arrow">矢印</option>
     </select>
@@ -27,12 +28,17 @@
     <button onclick="clearAll()">クリア</button>
     <button id="downloadPngButton" onclick="downloadPNG()">PNGとしてダウンロード</button>
     <button id="downloadSvgButton" onclick="downloadSVG()">SVGとしてダウンロード</button>
+    <button id="addElementButton">要素の追加</button>
     <span id="copySuccess" class="copy-success">✓ コピーしました</span>
   </div>
   <div id="output"></div>
   <canvas id="tempCanvas"></canvas>
 
-  <!-- ファイル読み込み：依存関係に注意し、最後にapp.jsを読み込む -->
+  <!-- 編集用のポップアップパネル -->
+  <div id="editPanel" class="edit-panel" style="display:none;">
+    <div id="editContent"></div>
+  </div>
+
   <script src="js/downloads.js"></script>
   <script src="js/logicModel.js"></script>
   <script src="js/ui.js"></script>

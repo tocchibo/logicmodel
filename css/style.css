@@ -1,61 +1,99 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap');
 
+:root {
+  /* 基本フォント・サイズ・間隔 */
+  --font-family: 'Roboto', sans-serif;
+  --primary-bg: #f0f2f5;
+  --primary-text: #333;
+  --max-width: 1200px;
+  --padding: 20px;
+  --font-size-base: 14px;
+
+  /* ボーダー・角丸 */
+  --border-color: #ccc;
+  --border-radius: 4px;
+
+  /* ボタン・背景 */
+  --button-bg: #fff;
+  --control-bg: rgba(255,255,255,0.9);
+  --box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  /* ノード・エッジ用 */
+  --hover-stroke: #93CDDD;
+  --hover-stroke-width: 3px;
+  --hover-fill: #93CDDD;
+  --edge-hover-stroke: #0099B3;
+  --edge-hover-width: 4px;
+  --highlight-node-stroke: #FCD5B5;
+  --highlight-node-fill: #F79646;
+  --highlight-node-width: 4px;
+  --highlight-edge-stroke: #F79646;
+  --highlight-edge-width: 5px;
+
+  /* 編集パネル */
+  --edit-panel-bg: #fff;
+  --edit-panel-border: #ccc;
+  --edit-panel-padding: 15px;
+  --edit-panel-box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  --z-index-edit-panel: 1000;
+}
+
 body {
-  font-family: 'Roboto', sans-serif;
-  background-color: #f0f2f5;
-  color: #333;
-  padding: 20px;
-  max-width: 1200px;
+  font-family: var(--font-family);
+  background-color: var(--primary-bg);
+  color: var(--primary-text);
+  padding: var(--padding);
+  max-width: var(--max-width);
   margin: 0 auto;
 }
 
+/* コマンド入力エリア */
 textarea#commands {
   width: 100%;
   margin-bottom: 10px;
   padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   resize: vertical;
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 /* 編集メニュー */
 .editing-menu {
-  display: flex;
+  display: none; /* 必要時にJS側で表示 */
   gap: 5px;
   margin-bottom: 10px;
   padding: 10px 5px 0;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid var(--border-color);
 }
 
 .editing-menu button {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--button-bg);
   cursor: pointer;
 }
 
-/* 出力領域 */
+/* 出力エリア */
 #output {
   width: 100%;
   text-align: center;
   position: relative;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  background: var(--button-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   padding: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--box-shadow);
 }
 
-/* 出力コンテナと下部コントロール */
+/* 出力コンテナ／コントロール */
 #outputContainer {
   position: relative;
   margin-bottom: 20px;
 }
 
-/* コントロールコンテナ */
 #controlsContainer {
   margin-top: 10px;
   display: flex;
@@ -64,36 +102,36 @@ textarea#commands {
 }
 
 #styleControls {
-  background: rgba(255,255,255,0.9);
+  background: var(--control-bg);
   padding: 5px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 #styleControls select {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   margin-right: 5px;
 }
 
 #downloadControls {
-  background: rgba(255,255,255,0.9);
+  background: var(--control-bg);
   padding: 5px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 #downloadControls button {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--button-bg);
   cursor: pointer;
   margin-left: 5px;
 }
 
-/* 修正指示入力フォーム */
+/* 修正指示フォーム */
 #correctionForm {
   margin-top: 10px;
 }
@@ -101,63 +139,96 @@ textarea#commands {
 #correctionForm textarea {
   width: 100%;
   padding: 6px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  font-size: var(--font-size-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   resize: vertical;
 }
 
 #correctionForm button {
   margin-top: 5px;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--button-bg);
   cursor: pointer;
 }
 
-/* 非表示のキャンバス */
+/* 非表示キャンバス */
 #tempCanvas {
   display: none;
 }
 
-/* 編集パネル */
+/* 編集パネル（動的なパネル共通） */
 .edit-panel {
   position: absolute;
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 10px;
-  z-index: 1000;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  background: var(--edit-panel-bg);
+  border: 1px solid var(--edit-panel-border);
+  padding: var(--edit-panel-padding);
+  border-radius: var(--border-radius);
+  box-shadow: var(--edit-panel-box-shadow);
+  z-index: var(--z-index-edit-panel);
+  display: none;
 }
 
-/* SVG 内のホバーエフェクト */
+.edit-panel-content {
+  min-width: 300px;
+}
 
-/* 要素（ノード）にマウスオーバー時：
-   ・ボックスの枠と背景色を #93CDDD に変更
-   ・枠は太くなる（stroke-width: 3px）
-   ・テキスト色は黒に固定 */
+.edit-panel-section {
+  margin-bottom: 15px;
+}
+
+.edit-panel-section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.edit-panel-section textarea,
+.edit-panel-section input,
+.edit-panel-section select {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+}
+
+.edit-panel-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-button {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: #f9f9f9;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+}
+
+/* ノードホバー */
 .node-hover polygon,
 .node-hover rect {
-  stroke: #93CDDD !important;
-  stroke-width: 3px !important;
-  fill: #93CDDD !important;
+  stroke: var(--hover-stroke) !important;
+  stroke-width: var(--hover-stroke-width) !important;
+  fill: var(--hover-fill) !important;
   cursor: pointer;
 }
 .node-hover text {
   fill: black !important;
 }
 
-/* Ctrl＋クリックで選択した要素（関係追加用）のスタイル：
-   ・ボックスの枠と背景色を #93CDDD に変更
-   ・枠は太く、点線にしてアニメーション（点滅・流れるような動き）を追加 */
+/* ノード選択（Ctrl＋クリック時など） */
 .node-selected polygon,
 .node-selected rect {
-  stroke: #93CDDD !important;
-  stroke-width: 3px !important;
-  fill: #93CDDD !important;
+  stroke: var(--hover-stroke) !important;
+  stroke-width: var(--hover-stroke-width) !important;
+  fill: var(--hover-fill) !important;
   stroke-dasharray: 4, 4;
   animation: dashAnimation 1s linear infinite;
   cursor: pointer;
@@ -167,31 +238,27 @@ textarea#commands {
 }
 
 @keyframes dashAnimation {
-  from {
-    stroke-dashoffset: 0;
-  }
-  to {
-    stroke-dashoffset: 8;
-  }
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 8; }
 }
 
+/* エッジホバー */
 .edge-hover path {
-  stroke: #0099B3 !important;
-  stroke-width: 4px !important;
+  stroke: var(--edge-hover-stroke) !important;
+  stroke-width: var(--edge-hover-width) !important;
 }
 
-/* 新規追加/関係追加時のハイライト用スタイル */
+/* 新規追加時のハイライト */
 .newly-added-node polygon,
 .newly-added-node rect {
-  stroke: #FCD5B5 !important;
-  stroke-width: 4px !important;
-  fill: #F79646 !important;
+  stroke: var(--highlight-node-stroke) !important;
+  stroke-width: var(--highlight-node-width) !important;
+  fill: var(--highlight-node-fill) !important;
   animation: newHighlightAnimation 0.5s ease-out;
 }
-
 .newly-added-edge path {
-  stroke: #F79646 !important;
-  stroke-width: 5px !important;
+  stroke: var(--highlight-edge-stroke) !important;
+  stroke-width: var(--highlight-edge-width) !important;
   animation: newHighlightAnimation 0.5s ease-out;
 }
 
@@ -201,5 +268,15 @@ textarea#commands {
   100% { opacity: 1; }
 }
 
-.edit-panel-section { margin-bottom: 10px; }
-.edit-panel-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+/* Relation Tooltip */
+#relationTooltip {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+  font-size: 12px;
+  z-index: 2000;
+}

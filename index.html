@@ -17,42 +17,47 @@
     <button id="addElementButton" title="新しい要素を追加">要素追加</button>
     <button id="undoButton" onclick="undoLastAction()" title="元に戻す" disabled>&#x21B6;</button>
     <button id="redoButton" onclick="redoLastAction()" title="やり直す" disabled>&#x21B7;</button>
-    <button id="helpButton" title="編集ヘルプの表示">ヘルプ</button>
+    <button id="helpButton" title="編集ヘルプの表示">編集ヘルプ</button>
   </div>
 
   <!-- 描画領域：コマンドが入力されたときのみ表示 -->
   <div id="outputContainer" style="display:none;">
     <div id="output"></div>
-    <!-- ロジックモデル表示スタイルコントロール（左下に固定） -->
-    <div id="styleControls">
-      <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
-        <option value="line">直線</option>
-        <option value="spline">曲線</option>
-      </select>
-      <select id="edgeType" onchange="reRenderModel()" title="接続線の先端">
-        <option value="line">方向表示なし</option>
-        <option value="arrow">方向表示あり</option>
-      </select>
-      <select id="edgeAttachmentStyle" onchange="reRenderModel()" title="接続位置の配置">
-        <option value="fixed">線の始点終点を固定</option>
-        <option value="auto">線の始点終点を自動配置</option>
-      </select>
-    </div>
-    <!-- ダウンロードコントロール（右下に固定） -->
-    <div id="downloadControls">
-      <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
-      <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
+    <!-- コントロールコンテナ（描画領域の直下に表示） -->
+    <div id="controlsContainer">
+      <div id="styleControls">
+        <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
+          <option value="line">直線</option>
+          <option value="spline">曲線</option>
+        </select>
+        <select id="edgeType" onchange="reRenderModel()" title="接続線の先端">
+          <option value="line">方向表示なし</option>
+          <option value="arrow">方向表示あり</option>
+        </select>
+        <select id="edgeAttachmentStyle" onchange="reRenderModel()" title="接続位置の配置">
+          <option value="fixed">線の始点終点を固定</option>
+          <option value="auto">線の始点終点を自動配置</option>
+        </select>
+      </div>
+      <div id="downloadControls">
+        <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
+        <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
+      </div>
     </div>
   </div>
 
   <!-- 修正指示フォーム：コマンドが入力されたときのみ表示 -->
   <div id="correctionForm" style="display:none;">
-    <textarea id="correctionInstructions" placeholder="ここに修正指示を記載してください" rows="5"></textarea>
+    <textarea id="correctionInstructions" placeholder="引き続きチャットボットに指示したい修正指示をここに記載した後、下のコピーボタンをクリックしてください。手作業での編集も反映された修正指示文がコピーされます" rows="5"></textarea>
     <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
-    <span id="copySuccess" class="copy-success">コピーしました</span>
+    <span id="copySuccess" class="copy-success">指示をコピーしました。チャット画面に戻り指示を貼り付けてください</span>
   </div>
   
   <canvas id="tempCanvas"></canvas>
+  
+  <!-- 関係追加時のヒント表示用ツールチップ -->
+  <div id="relationTooltip" style="position: absolute; display: none; pointer-events: none; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; z-index: 2000;"></div>
+  
   <div id="editPanel" class="edit-panel" style="display:none;"></div>
 
   <script src="js/downloads.js"></script>

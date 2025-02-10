@@ -1,5 +1,10 @@
 /* js/ui.js */
 
+// Global variables for relation tooltip
+let selectedNodesForRelation = [];
+let isCtrlPressed = false;
+let relationTooltip = null;
+
 // SVG描画後に各ノード・エッジにイベントを設定
 function attachSvgEventHandlers() {
     const svg = document.querySelector('#output svg');
@@ -252,3 +257,42 @@ document.addEventListener('keydown', function(e) {
       }
     }
   }, true);
+
+// Relation Tooltip Handlers
+document.addEventListener("DOMContentLoaded", function() {
+  relationTooltip = document.getElementById("relationTooltip");
+
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Control") {
+      isCtrlPressed = true;
+      updateRelationTooltip(e);
+      relationTooltip.style.display = "block";
+    }
+  });
+
+  document.addEventListener("keyup", function(e) {
+    if (e.key === "Control") {
+      isCtrlPressed = false;
+      relationTooltip.style.display = "none";
+    }
+  });
+
+  document.addEventListener("mousemove", function(e) {
+    if (isCtrlPressed) {
+      updateRelationTooltip(e);
+    }
+  });
+});
+
+function updateRelationTooltip(e) {
+  if (!relationTooltip) return;
+  let tooltipText = "";
+  if (selectedNodesForRelation.length === 0) {
+    tooltipText = "追加したい関係の始点要素をクリック";
+  } else {
+    tooltipText = "終点要素をクリック";
+  }
+  relationTooltip.textContent = tooltipText;
+  relationTooltip.style.left = (e.pageX + 10) + "px";
+  relationTooltip.style.top = (e.pageY + 10) + "px";
+}

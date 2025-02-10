@@ -122,7 +122,7 @@ function copyCorrectionInstructions() {
   let textToCopy = "";
   if (isEdited) {
     textToCopy = generateCommandsFromModel(logicModelData) + "\n\n" +
-                 "このようにロジックモデルを修正しました。この修正に加え、以下を修正：" + "\n" +
+                 "このようにロジックモデルを修正しました。この修正に加え、以下を修正して：" + "\n" +
                  instructions;
   } else {
     textToCopy = instructions;

@@ -156,14 +156,14 @@ function showEditPanelForElement(svgNode, nodeId, event) {
     const labelText = element.label.replace(/\\n/g, "\n");
     const rows = Math.max(3, labelText.split("\n").length);
     panel.innerHTML = `
-      <div class="edit-panel-section" style="margin-bottom:10px;">
-          <div>
-              <label>ラベル: </label>
-              <textarea id="editLabel" rows="${rows}" style="min-width:200px;">${labelText}</textarea>
+      <div class="edit-panel-content" style="padding: 15px; min-width: 300px; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <div class="edit-panel-section" style="margin-bottom: 15px;">
+              <label for="editLabel" style="display: block; font-weight: bold; margin-bottom: 5px;">ラベル</label>
+              <textarea id="editLabel" rows="${rows}" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">${labelText}</textarea>
           </div>
-          <div>
-              <label>カテゴリー: </label>
-              <select id="editCategory">
+          <div class="edit-panel-section" style="margin-bottom: 15px;">
+              <label for="editCategory" style="display: block; font-weight: bold; margin-bottom: 5px;">カテゴリー</label>
+              <select id="editCategory" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
                   <option value="input" ${element.category==='input'?'selected':''}>input</option>
                   <option value="activity" ${element.category==='activity'?'selected':''}>activity</option>
                   <option value="output" ${element.category==='output'?'selected':''}>output</option>
@@ -171,12 +171,12 @@ function showEditPanelForElement(svgNode, nodeId, event) {
                   <option value="impact" ${element.category==='impact'?'selected':''}>impact</option>
               </select>
           </div>
-      </div>
-      <div class="edit-panel-buttons" style="display:flex; gap:5px; flex-wrap:wrap;">
-          <button onclick="applyElementEdit('${nodeId}')">適用</button>
-          <button onclick="deleteElement('${nodeId}')">削除</button>
-          <button onclick="startRelationFrom('${nodeId}')">ここから始まる関係線を追加</button>
-          <button onclick="hideEditPanel()">キャンセル</button>
+          <div class="edit-panel-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="applyElementEdit('${nodeId}')" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">適用</button>
+              <button onclick="deleteElement('${nodeId}')" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">削除</button>
+              <button onclick="startRelationFrom('${nodeId}')" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">ここから始まる関係線を追加</button>
+              <button onclick="hideEditPanel()" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">キャンセル</button>
+          </div>
       </div>
     `;
     panel.style.display = "block";
@@ -263,22 +263,26 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     panel.style.left = e.clientX + "px";
     panel.style.top = e.clientY + "px";
     panel.innerHTML = `
-        <div>
-            <label for="newElementLabel">ラベル: </label>
-            <input type="text" id="newElementLabel" value="">
-        </div>
-        <div>
-            <label for="newElementCategory">カテゴリー: </label>
-            <select id="newElementCategory">
-                <option value="input">input</option>
-                <option value="activity">activity</option>
-                <option value="output">output</option>
-                <option value="outcome">outcome</option>
-                <option value="impact">impact</option>
-            </select>
-        </div>
-        <button onclick="addNewElement()">追加</button>
-        <button onclick="hideEditPanel()">キャンセル</button>
+      <div class="add-element-panel" style="padding: 15px; min-width: 300px; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <div style="margin-bottom: 15px;">
+              <label for="newElementLabel" style="display: block; font-weight: bold; margin-bottom: 5px;">ラベル</label>
+              <input type="text" id="newElementLabel" value="" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 15px;">
+              <label for="newElementCategory" style="display: block; font-weight: bold; margin-bottom: 5px;">カテゴリー</label>
+              <select id="newElementCategory" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="input">input</option>
+                  <option value="activity">activity</option>
+                  <option value="output">output</option>
+                  <option value="outcome">outcome</option>
+                  <option value="impact">impact</option>
+              </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="addNewElement()" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">追加</button>
+              <button onclick="hideEditPanel()" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; cursor: pointer;">キャンセル</button>
+          </div>
+      </div>
     `;
     panel.style.display = "block";
     document.getElementById("newElementLabel").focus();

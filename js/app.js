@@ -40,6 +40,7 @@ async function processCommands() {
   const outputContainer = document.getElementById('outputContainer');
 
   document.getElementById("copySuccess").style.display = "none";
+  document.getElementById("correctionInstructions").value = "";
 
   if (commands.trim() === '') {
     document.getElementById('output').innerHTML = '';
@@ -78,6 +79,7 @@ function clearCommands() {
   document.getElementById('commands').value = '';
   document.getElementById('output').innerHTML = '';
   document.getElementById("correctionForm").style.display = "none";
+  document.getElementById("correctionInstructions").value = "";
   const editingMenu = document.querySelector('.editing-menu');
   const outputContainer = document.getElementById('outputContainer');
   if (editingMenu) editingMenu.style.display = 'none';

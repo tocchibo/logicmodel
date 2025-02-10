@@ -179,3 +179,24 @@ textarea#commands {
   stroke: #0099B3 !important;
   stroke-width: 4px !important;
 }
+
+/* 新規追加/関係追加時のハイライト用スタイル */
+.newly-added-node polygon,
+.newly-added-node rect {
+  stroke: #FCD5B5 !important;
+  stroke-width: 4px !important;
+  fill: #F79646 !important;
+  animation: newHighlightAnimation 0.5s ease-out;
+}
+
+.newly-added-edge path {
+  stroke: #F79646 !important;
+  stroke-width: 5px !important;
+  animation: newHighlightAnimation 0.5s ease-out;
+}
+
+@keyframes newHighlightAnimation {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}

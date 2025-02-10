@@ -296,3 +296,69 @@ function updateRelationTooltip(e) {
   relationTooltip.style.left = (e.pageX + 10) + "px";
   relationTooltip.style.top = (e.pageY + 10) + "px";
 }
+
+
+function highlightNewRelation(from, to) {
+// 対象のノード（始点・終点）とエッジの取得
+const nodeFrom = document.getElementById("node_" + from);
+const nodeTo = document.getElementById("node_" + to);
+const edge = document.getElementById("edge_" + from + "_" + to);
+
+if (nodeFrom) nodeFrom.classList.add("newly-added-node");
+if (nodeTo) nodeTo.classList.add("newly-added-node");
+if (edge) edge.classList.add("newly-added-edge");
+
+// 0.5秒後にクラスを除去
+setTimeout(() => {
+    if (nodeFrom) nodeFrom.classList.remove("newly-added-node");
+    if (nodeTo) nodeTo.classList.remove("newly-added-node");
+    if (edge) edge.classList.remove("newly-added-edge");
+}, 500);
+}
+
+function highlightNewNode(id) {
+    const node = document.getElementById("node_" + id);
+    if (node) {
+        node.classList.add("newly-added-node");
+        setTimeout(() => {
+        node.classList.remove("newly-added-node");
+        }, 500);
+    }
+}
+
+function handleNodeRelationSelection(node, nodeId) {
+    if (selectedNodesForRelation.includes(nodeId)) {
+        selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
+        node.classList.remove('node-selected');
+    } else {
+        selectedNodesForRelation.push(nodeId);
+        node.classList.add('node-selected');
+    }
+    if (selectedNodesForRelation.length === 2) {
+        const [from, to] = selectedNodesForRelation;
+        addRelation(from, to);
+        clearSelection();
+        // 再描画完了後にハイライトを実行
+        reRenderModel().then(() => {
+            highlightNewRelation(from, to);
+        });
+    }
+}
+
+function addNewElement() {
+    if (!logicModelData) {
+        logicModelData = { title: "", elements: {}, relations: [] };
+    }
+    const label = document.getElementById('newElementLabel').value.trim();
+    const category = document.getElementById('newElementCategory').value;
+    if (!label) return;
+    saveState();
+    const id = category + elementCounters[category];
+    elementCounters[category]++;
+    logicModelData.elements[id] = { id, label, category };
+    hideEditPanel();
+    // 再描画完了後にハイライトを実行
+    reRenderModel().then(() => {
+        highlightNewNode(id);
+    });
+}

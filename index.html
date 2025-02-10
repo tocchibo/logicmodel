@@ -42,7 +42,9 @@
       <div id="downloadControls">
         <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
         <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
+        <button id="powerpointHelpButton" onclick="showPowerpointHelpPanel(event)" title="パワポ貼付ヘルプ">パワポ貼付ヘルプ</button>
       </div>
+      
     </div>
   </div>
 
@@ -59,6 +61,7 @@
   <div id="relationTooltip" style="position: absolute; display: none; pointer-events: none; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; z-index: 2000;"></div>
   
   <div id="editPanel" class="edit-panel" style="display:none;"></div>
+  <div id="powerpointHelpPanel" class="edit-panel" style="display:none;"></div>
 
   <script src="js/downloads.js"></script>
   <script src="js/logicModel.js"></script>

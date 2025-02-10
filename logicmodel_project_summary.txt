@@ -13,6 +13,9 @@
     - downloads.js
     - logicModel.js
     - ui.js
+  - pics/
+    - group_kaijo.png (binary file)
+    - zukei_ni_henkan.png (binary file)
 
 ## File Contents
 
@@ -21,62 +24,100 @@
 ```
 @import url('https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap');
 
+:root {
+  /* 基本フォント・サイズ・間隔 */
+  --font-family: 'Roboto', sans-serif;
+  --primary-bg: #f0f2f5;
+  --primary-text: #333;
+  --max-width: 1200px;
+  --padding: 20px;
+  --font-size-base: 14px;
+
+  /* ボーダー・角丸 */
+  --border-color: #ccc;
+  --border-radius: 4px;
+
+  /* ボタン・背景 */
+  --button-bg: #fff;
+  --control-bg: rgba(255,255,255,0.9);
+  --box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  /* ノード・エッジ用 */
+  --hover-stroke: #93CDDD;
+  --hover-stroke-width: 3px;
+  --hover-fill: #93CDDD;
+  --edge-hover-stroke: #0099B3;
+  --edge-hover-width: 4px;
+  --highlight-node-stroke: #FCD5B5;
+  --highlight-node-fill: #F79646;
+  --highlight-node-width: 4px;
+  --highlight-edge-stroke: #F79646;
+  --highlight-edge-width: 5px;
+
+  /* 編集パネル */
+  --edit-panel-bg: #fff;
+  --edit-panel-border: #ccc;
+  --edit-panel-padding: 15px;
+  --edit-panel-box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  --z-index-edit-panel: 1000;
+}
+
 body {
-  font-family: 'Roboto', sans-serif;
-  background-color: #f0f2f5;
-  color: #333;
-  padding: 20px;
-  max-width: 1200px;
+  font-family: var(--font-family);
+  background-color: var(--primary-bg);
+  color: var(--primary-text);
+  padding: var(--padding);
+  max-width: var(--max-width);
   margin: 0 auto;
 }
 
+/* コマンド入力エリア */
 textarea#commands {
   width: 100%;
   margin-bottom: 10px;
   padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   resize: vertical;
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 /* 編集メニュー */
 .editing-menu {
-  display: flex;
+  display: none; /* 必要時にJS側で表示 */
   gap: 5px;
   margin-bottom: 10px;
   padding: 10px 5px 0;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid var(--border-color);
 }
 
 .editing-menu button {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--button-bg);
   cursor: pointer;
 }
 
-/* 出力領域 */
+/* 出力エリア */
 #output {
   width: 100%;
   text-align: center;
   position: relative;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  background: var(--button-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   padding: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--box-shadow);
 }
 
-/* 出力コンテナと下部コントロール */
+/* 出力コンテナ／コントロール */
 #outputContainer {
   position: relative;
   margin-bottom: 20px;
 }
 
-/* コントロールコンテナ */
 #controlsContainer {
   margin-top: 10px;
   display: flex;
@@ -85,36 +126,36 @@ textarea#commands {
 }
 
 #styleControls {
-  background: rgba(255,255,255,0.9);
+  background: var(--control-bg);
   padding: 5px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 #styleControls select {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   margin-right: 5px;
 }
 
 #downloadControls {
-  background: rgba(255,255,255,0.9);
+  background: var(--control-bg);
   padding: 5px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
 }
 
 #downloadControls button {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--button-bg);
   cursor: pointer;
   margin-left: 5px;
 }
 
-/* 修正指示入力フォーム */
+/* 修正指示フォーム */
 #correctionForm {
   margin-top: 10px;
 }
@@ -122,63 +163,96 @@ textarea#commands {
 #correctionForm textarea {
   width: 100%;
   padding: 6px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  font-size: var(--font-size-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   resize: vertical;
 }
 
 #correctionForm button {
   margin-top: 5px;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--button-bg);
   cursor: pointer;
 }
 
-/* 非表示のキャンバス */
+/* 非表示キャンバス */
 #tempCanvas {
   display: none;
 }
 
-/* 編集パネル */
+/* 編集パネル（動的なパネル共通） */
 .edit-panel {
   position: absolute;
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 10px;
-  z-index: 1000;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  background: var(--edit-panel-bg);
+  border: 1px solid var(--edit-panel-border);
+  padding: var(--edit-panel-padding);
+  border-radius: var(--border-radius);
+  box-shadow: var(--edit-panel-box-shadow);
+  z-index: var(--z-index-edit-panel);
+  display: none;
 }
 
-/* SVG 内のホバーエフェクト */
+.edit-panel-content {
+  min-width: 300px;
+}
 
-/* 要素（ノード）にマウスオーバー時：
-   ・ボックスの枠と背景色を #93CDDD に変更
-   ・枠は太くなる（stroke-width: 3px）
-   ・テキスト色は黒に固定 */
+.edit-panel-section {
+  margin-bottom: 15px;
+}
+
+.edit-panel-section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.edit-panel-section textarea,
+.edit-panel-section input,
+.edit-panel-section select {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+}
+
+.edit-panel-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-button {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: #f9f9f9;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+}
+
+/* ノードホバー */
 .node-hover polygon,
 .node-hover rect {
-  stroke: #93CDDD !important;
-  stroke-width: 3px !important;
-  fill: #93CDDD !important;
+  stroke: var(--hover-stroke) !important;
+  stroke-width: var(--hover-stroke-width) !important;
+  fill: var(--hover-fill) !important;
   cursor: pointer;
 }
 .node-hover text {
   fill: black !important;
 }
 
-/* Ctrl＋クリックで選択した要素（関係追加用）のスタイル：
-   ・ボックスの枠と背景色を #93CDDD に変更
-   ・枠は太く、点線にしてアニメーション（点滅・流れるような動き）を追加 */
+/* ノード選択（Ctrl＋クリック時など） */
 .node-selected polygon,
 .node-selected rect {
-  stroke: #93CDDD !important;
-  stroke-width: 3px !important;
-  fill: #93CDDD !important;
+  stroke: var(--hover-stroke) !important;
+  stroke-width: var(--hover-stroke-width) !important;
+  fill: var(--hover-fill) !important;
   stroke-dasharray: 4, 4;
   animation: dashAnimation 1s linear infinite;
   cursor: pointer;
@@ -188,31 +262,27 @@ textarea#commands {
 }
 
 @keyframes dashAnimation {
-  from {
-    stroke-dashoffset: 0;
-  }
-  to {
-    stroke-dashoffset: 8;
-  }
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 8; }
 }
 
+/* エッジホバー */
 .edge-hover path {
-  stroke: #0099B3 !important;
-  stroke-width: 4px !important;
+  stroke: var(--edge-hover-stroke) !important;
+  stroke-width: var(--edge-hover-width) !important;
 }
 
-/* 新規追加/関係追加時のハイライト用スタイル */
+/* 新規追加時のハイライト */
 .newly-added-node polygon,
 .newly-added-node rect {
-  stroke: #FCD5B5 !important;
-  stroke-width: 4px !important;
-  fill: #F79646 !important;
+  stroke: var(--highlight-node-stroke) !important;
+  stroke-width: var(--highlight-node-width) !important;
+  fill: var(--highlight-node-fill) !important;
   animation: newHighlightAnimation 0.5s ease-out;
 }
-
 .newly-added-edge path {
-  stroke: #F79646 !important;
-  stroke-width: 5px !important;
+  stroke: var(--highlight-edge-stroke) !important;
+  stroke-width: var(--highlight-edge-width) !important;
   animation: newHighlightAnimation 0.5s ease-out;
 }
 
@@ -222,8 +292,18 @@ textarea#commands {
   100% { opacity: 1; }
 }
 
-.edit-panel-section { margin-bottom: 10px; }
-.edit-panel-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+/* Relation Tooltip */
+#relationTooltip {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+  font-size: 12px;
+  z-index: 2000;
+}
 
 ```
 
@@ -280,7 +360,7 @@ textarea#commands {
 
   <!-- 修正指示フォーム：コマンドが入力されたときのみ表示 -->
   <div id="correctionForm" style="display:none;">
-    <textarea id="correctionInstructions" placeholder="引き続きチャットボットに指示したい修正指示をここに記載した後、下のコピーボタンをクリックしてください。手作業での編集も反映された修正指示文がコピーされます" rows="5"></textarea>
+    <textarea id="correctionInstructions" placeholder="編集内容を踏まえ、引き続きチャットボットに修正を指示したい場合は、修正内容をここに記載した後、下のコピーボタンをクリックしてください" rows="5"></textarea>
     <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
     <span id="copySuccess" class="copy-success">指示をコピーしました。チャット画面に戻り指示を貼り付けてください</span>
   </div>
@@ -347,6 +427,7 @@ async function processCommands() {
   const outputContainer = document.getElementById('outputContainer');
 
   document.getElementById("copySuccess").style.display = "none";
+  document.getElementById("correctionInstructions").value = "";
 
   if (commands.trim() === '') {
     document.getElementById('output').innerHTML = '';
@@ -385,6 +466,7 @@ function clearCommands() {
   document.getElementById('commands').value = '';
   document.getElementById('output').innerHTML = '';
   document.getElementById("correctionForm").style.display = "none";
+  document.getElementById("correctionInstructions").value = "";
   const editingMenu = document.querySelector('.editing-menu');
   const outputContainer = document.getElementById('outputContainer');
   if (editingMenu) editingMenu.style.display = 'none';
@@ -889,375 +971,406 @@ async function renderLogicModelFromJSON(model) {
 ```
 /* js/ui.js */
 
-// Global variables for relation tooltip and waiting mode for relation addition
+// グローバル変数
 let selectedNodesForRelation = [];
 let isCtrlPressed = false;
 let relationTooltip = null;
 window.startingNodeForRelation = null;
 window.isWaitingForRelationEnd = false;
 
-// SVG描画後に各ノード・エッジにイベントを設定
+/**
+ * 画面端にはみ出す場合、パネルの位置を調整する関数
+ */
+function positionPanel(panel, x, y) {
+  panel.style.left = x + "px";
+  panel.style.top = y + "px";
+  panel.style.visibility = "hidden";
+  panel.style.display = "block";
+  const rect = panel.getBoundingClientRect();
+  panel.style.visibility = "visible";
+  let adjustedX = x;
+  let adjustedY = y;
+  if (rect.right > window.innerWidth) {
+    adjustedX = x - (rect.right - window.innerWidth) - 10;
+  }
+  if (rect.bottom > window.innerHeight) {
+    adjustedY = y - (rect.bottom - window.innerHeight) - 10;
+  }
+  panel.style.left = adjustedX + "px";
+  panel.style.top = adjustedY + "px";
+}
+
+/**
+ * SVG描画後、ノード・エッジにイベントを設定する
+ */
 function attachSvgEventHandlers() {
-    const svg = document.querySelector('#output svg');
-    if (!svg) return;
-    
-    // ノード（通常は g.node）の処理
-    const nodes = svg.querySelectorAll('g.node');
-    nodes.forEach(node => {
-        node.style.cursor = "pointer";
-        
-        // ノードの ID を取得
-        const nodeId = node.querySelector('title').textContent.trim();
-        // waiting mode 中かつ、このノードが始点ならスタイルを付与する
-        if (window.isWaitingForRelationEnd && window.startingNodeForRelation === nodeId) {
-            node.classList.add("node-selected");
+  const svg = document.querySelector('#output svg');
+  if (!svg) return;
+
+  // ノード処理
+  const nodes = svg.querySelectorAll('g.node');
+  nodes.forEach(node => {
+    node.style.cursor = "pointer";
+    const nodeId = node.querySelector('title').textContent.trim();
+
+    if (window.isWaitingForRelationEnd && window.startingNodeForRelation === nodeId) {
+      node.classList.add("node-selected");
+    }
+
+    node.addEventListener('mouseover', () => node.classList.add('node-hover'));
+    node.addEventListener('mouseout', () => node.classList.remove('node-hover'));
+    node.addEventListener('click', e => {
+      e.stopPropagation();
+      if (window.isWaitingForRelationEnd) {
+        if (window.startingNodeForRelation && window.startingNodeForRelation !== nodeId) {
+          const fromNode = window.startingNodeForRelation;
+          const relationAdded = addRelation(fromNode, nodeId);
+          window.isWaitingForRelationEnd = false;
+          window.startingNodeForRelation = null;
+          clearSelection();
+          hideTooltip();
+          reRenderModel().then(() => {
+            if (relationAdded) highlightNewRelation(fromNode, nodeId);
+          });
+        } else {
+          window.isWaitingForRelationEnd = false;
+          window.startingNodeForRelation = null;
+          clearSelection();
+          hideTooltip();
         }
-        
-        node.addEventListener('mouseover', function() {
-            node.classList.add('node-hover');
-        });
-        node.addEventListener('mouseout', function() {
-            node.classList.remove('node-hover');
-        });
-        node.addEventListener('click', function(e) {
-            e.stopPropagation();
-            // waiting mode（編集パネルからの関係追加状態）の場合
-            if (window.isWaitingForRelationEnd) {
-                if (window.startingNodeForRelation && window.startingNodeForRelation !== nodeId) {
-                    // waiting mode で設定された始点とクリックされたノードを終点として関係を追加
-                    const fromNode = window.startingNodeForRelation;
-                    const relationAdded = addRelation(fromNode, nodeId);
-                    window.isWaitingForRelationEnd = false;
-                    window.startingNodeForRelation = null;
-                    clearSelection();
-                    hideTooltip();
-                    reRenderModel().then(() => {
-                        if (relationAdded) {
-                            highlightNewRelation(fromNode, nodeId);
-                        }
-                    });
-                } else {
-                    // 同じノードがクリックされた場合は waiting mode を解除
-                    window.isWaitingForRelationEnd = false;
-                    window.startingNodeForRelation = null;
-                    clearSelection();
-                    hideTooltip();
-                }
-                return;
-            }
-            
-            // waiting mode でない場合は、Ctrl＋クリックなら既存の関係追加処理、通常クリックなら編集パネルを表示
-            if (e.ctrlKey) {
-                handleNodeRelationSelection(node, nodeId);
-            } else {
-                window.currentEditingType = "element";
-                window.currentEditingId = nodeId;
-                showEditPanelForElement(node, nodeId, e);
-            }
-        });
+        return;
+      }
+      if (e.ctrlKey) {
+        handleNodeRelationSelection(node, nodeId);
+      } else {
+        window.currentEditingType = "element";
+        window.currentEditingId = nodeId;
+        showEditPanelForElement(node, nodeId, e);
+      }
     });
-    
-    // エッジ（通常は g.edge）の処理
-    const edges = svg.querySelectorAll('g.edge');
-    edges.forEach(edge => {
-        edge.style.cursor = "pointer";
-        edge.addEventListener('mouseover', function() {
-            edge.classList.add('edge-hover');
-        });
-        edge.addEventListener('mouseout', function() {
-            edge.classList.remove('edge-hover');
-        });
-        edge.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const edgeIdAttr = edge.getAttribute('id');
-            if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
-                const parts = edgeIdAttr.substring(5).split('_'); // "edge_" を除去して分割
-                if (parts.length >= 2) {
-                    window.currentEditingType = "edge";
-                    window.currentEditingEdge = { from: parts[0], to: parts[1] };
-                    showEditPanelForEdge(edge, window.currentEditingEdge, e);
-                }
-            }
-        });
-    });
-    
-    // SVG全体クリック時（ノード・エッジ以外の場所をクリックした場合）
-    svg.addEventListener('click', function(e) {
-        if (window.isWaitingForRelationEnd) {
-            window.isWaitingForRelationEnd = false;
-            window.startingNodeForRelation = null;
-            clearSelection();
-            hideTooltip();
+  });
+
+  // エッジ処理
+  const edges = svg.querySelectorAll('g.edge');
+  edges.forEach(edge => {
+    edge.style.cursor = "pointer";
+    edge.addEventListener('mouseover', () => edge.classList.add('edge-hover'));
+    edge.addEventListener('mouseout', () => edge.classList.remove('edge-hover'));
+    edge.addEventListener('click', e => {
+      e.stopPropagation();
+      const edgeIdAttr = edge.getAttribute('id');
+      if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
+        const parts = edgeIdAttr.substring(5).split('_');
+        if (parts.length >= 2) {
+          window.currentEditingType = "edge";
+          window.currentEditingEdge = { from: parts[0], to: parts[1] };
+          showEditPanelForEdge(edge, window.currentEditingEdge, e);
         }
-        hideEditPanel();
+      }
     });
+  });
+
+  // SVG全体クリックでパネル非表示
+  svg.addEventListener('click', () => {
+    if (window.isWaitingForRelationEnd) {
+      window.isWaitingForRelationEnd = false;
+      window.startingNodeForRelation = null;
+      clearSelection();
+      hideTooltip();
+    }
+    hideEditPanel();
+  });
 }
 
-
-// Ctrl＋クリックでの関係追加（既存処理）
+/**
+ * Ctrl＋クリックによる複数ノード選択での関係追加
+ */
 function handleNodeRelationSelection(node, nodeId) {
-    if (selectedNodesForRelation.includes(nodeId)) {
-        selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
-        node.classList.remove('node-selected');
-    } else {
-        selectedNodesForRelation.push(nodeId);
-        node.classList.add('node-selected');
-    }
-    if (selectedNodesForRelation.length === 2) {
-        const [from, to] = selectedNodesForRelation;
-        const relationAdded = addRelation(from, to);
-        clearSelection();
-        reRenderModel().then(() => {
-            if (relationAdded) {
-                highlightNewRelation(from, to);
-            }
-        });
-    }
+  if (selectedNodesForRelation.includes(nodeId)) {
+    selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
+    node.classList.remove('node-selected');
+  } else {
+    selectedNodesForRelation.push(nodeId);
+    node.classList.add('node-selected');
+  }
+  if (selectedNodesForRelation.length === 2) {
+    const [from, to] = selectedNodesForRelation;
+    const relationAdded = addRelation(from, to);
+    clearSelection();
+    reRenderModel().then(() => {
+      if (relationAdded) highlightNewRelation(from, to);
+    });
+  }
 }
 
+/**
+ * 関係追加
+ */
 function addRelation(from, to) {
-    const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
-    if (!exists) {
-      saveState();
-      logicModelData.relations.push({ from, to });
-      return true;
-    }
-    return false;
-}
-
-function clearSelection() {
-    selectedNodesForRelation = [];
-    const svg = document.querySelector('#output svg');
-    if (svg) {
-        svg.querySelectorAll('g.node').forEach(node => {
-            node.classList.remove('node-selected');
-        });
-    }
-}
-
-// 編集パネル（要素）の表示（レイアウト変更＆「ここから始まる関係線を追加」ボタン追加）
-function showEditPanelForElement(svgNode, nodeId, event) {
-    const panel = document.getElementById('editPanel');
-    panel.style.left = event.clientX + "px";
-    panel.style.top = event.clientY + "px";
-    const element = logicModelData.elements[nodeId];
-    if (!element) return;
-    const labelText = element.label.replace(/\\n/g, "\n");
-    const rows = Math.max(3, labelText.split("\n").length);
-    panel.innerHTML = `
-      <div class="edit-panel-section" style="margin-bottom:10px;">
-          <div>
-              <label>ラベル: </label>
-              <textarea id="editLabel" rows="${rows}" style="min-width:200px;">${labelText}</textarea>
-          </div>
-          <div>
-              <label>カテゴリー: </label>
-              <select id="editCategory">
-                  <option value="input" ${element.category==='input'?'selected':''}>input</option>
-                  <option value="activity" ${element.category==='activity'?'selected':''}>activity</option>
-                  <option value="output" ${element.category==='output'?'selected':''}>output</option>
-                  <option value="outcome" ${element.category==='outcome'?'selected':''}>outcome</option>
-                  <option value="impact" ${element.category==='impact'?'selected':''}>impact</option>
-              </select>
-          </div>
-      </div>
-      <div class="edit-panel-buttons" style="display:flex; gap:5px; flex-wrap:wrap;">
-          <button onclick="applyElementEdit('${nodeId}')">適用</button>
-          <button onclick="deleteElement('${nodeId}')">削除</button>
-          <button onclick="startRelationFrom('${nodeId}')">ここから始まる関係線を追加</button>
-          <button onclick="hideEditPanel()">キャンセル</button>
-      </div>
-    `;
-    panel.style.display = "block";
-}
-
-function applyElementEdit(nodeId) {
-    const newLabel = document.getElementById('editLabel').value;
-    const newCategory = document.getElementById('editCategory').value;
-    if (logicModelData.elements[nodeId]) {
-        saveState();
-        // 改行を内部表現用の literal "\n" に変換
-        logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
-        logicModelData.elements[nodeId].category = newCategory;
-    }
-    hideEditPanel();
-    reRenderModel();
-}
-
-function deleteElement(nodeId) {
-    if (logicModelData.elements[nodeId]) {
-        saveState();
-        delete logicModelData.elements[nodeId];
-        logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
-    }
-    hideEditPanel();
-    reRenderModel();
-}
-
-function showEditPanelForEdge(edgeElement, edgeData, event) {
-    const panel = document.getElementById('editPanel');
-    panel.style.left = event.clientX + "px";
-    panel.style.top = event.clientY + "px";
-    panel.innerHTML = `
-        <div>
-            <p>関係: ${edgeData.from} → ${edgeData.to}</p>
-        </div>
-        <button onclick="deleteEdge('${edgeData.from}', '${edgeData.to}')">削除</button>
-        <button onclick="hideEditPanel()">キャンセル</button>
-    `;
-    panel.style.display = "block";
-}
-
-function deleteEdge(from, to) {
+  const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
+  if (!exists) {
     saveState();
-    logicModelData.relations = logicModelData.relations.filter(rel => !(rel.from === from && rel.to === to));
-    hideEditPanel();
-    reRenderModel();
+    logicModelData.relations.push({ from, to });
+    return true;
+  }
+  return false;
 }
 
+/**
+ * 選択状態を解除
+ */
+function clearSelection() {
+  selectedNodesForRelation = [];
+  const svg = document.querySelector('#output svg');
+  if (svg) {
+    svg.querySelectorAll('g.node').forEach(node => node.classList.remove('node-selected'));
+  }
+}
+
+/**
+ * 要素編集パネルの表示
+ */
+function showEditPanelForElement(svgNode, nodeId, event) {
+  const panel = document.getElementById('editPanel');
+  positionPanel(panel, event.clientX, event.clientY);
+  const element = logicModelData.elements[nodeId];
+  if (!element) return;
+  const labelText = element.label.replace(/\\n/g, "\n");
+  const rows = Math.max(3, labelText.split("\n").length);
+  panel.innerHTML = `
+    <div class="edit-panel-content">
+      <div class="edit-panel-section">
+        <label for="editLabel">ラベル</label>
+        <textarea id="editLabel" rows="${rows}">${labelText}</textarea>
+      </div>
+      <div class="edit-panel-section">
+        <label for="editCategory">カテゴリー</label>
+        <select id="editCategory">
+          <option value="input" ${element.category==='input'?'selected':''}>input</option>
+          <option value="activity" ${element.category==='activity'?'selected':''}>activity</option>
+          <option value="output" ${element.category==='output'?'selected':''}>output</option>
+          <option value="outcome" ${element.category==='outcome'?'selected':''}>outcome</option>
+          <option value="impact" ${element.category==='impact'?'selected':''}>impact</option>
+        </select>
+      </div>
+      <div class="edit-panel-buttons">
+        <button onclick="applyElementEdit('${nodeId}')" class="panel-button">適用</button>
+        <button onclick="deleteElement('${nodeId}')" class="panel-button">削除</button>
+        <button onclick="startRelationFrom('${nodeId}')" class="panel-button">ここから始まる関係線を追加</button>
+        <button onclick="hideEditPanel()" class="panel-button">キャンセル</button>
+      </div>
+    </div>
+  `;
+  panel.style.display = "block";
+}
+
+/**
+ * 要素編集適用
+ */
+function applyElementEdit(nodeId) {
+  const newLabel = document.getElementById('editLabel').value;
+  const newCategory = document.getElementById('editCategory').value;
+  if (logicModelData.elements[nodeId]) {
+    saveState();
+    logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
+    logicModelData.elements[nodeId].category = newCategory;
+  }
+  hideEditPanel();
+  reRenderModel();
+}
+
+/**
+ * 要素削除
+ */
+function deleteElement(nodeId) {
+  if (logicModelData.elements[nodeId]) {
+    saveState();
+    delete logicModelData.elements[nodeId];
+    logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
+  }
+  hideEditPanel();
+  reRenderModel();
+}
+
+/**
+ * 関係編集パネルの表示（不要なテキストは出さず、削除・キャンセルボタンのみ）
+ */
+function showEditPanelForEdge(edgeElement, edgeData, event) {
+  const panel = document.getElementById('editPanel');
+  positionPanel(panel, event.clientX, event.clientY);
+  panel.innerHTML = `
+    <div class="edit-panel-content">
+      <div class="edit-panel-buttons">
+        <button onclick="deleteEdge('${edgeData.from}', '${edgeData.to}')" class="panel-button">削除</button>
+        <button onclick="hideEditPanel()" class="panel-button">キャンセル</button>
+      </div>
+    </div>
+  `;
+  panel.style.display = "block";
+}
+
+/**
+ * 関係削除
+ */
+function deleteEdge(from, to) {
+  saveState();
+  logicModelData.relations = logicModelData.relations.filter(rel => !(rel.from === from && rel.to === to));
+  hideEditPanel();
+  reRenderModel();
+}
+
+/**
+ * 編集パネルを非表示にする
+ */
 function hideEditPanel() {
-    const panel = document.getElementById('editPanel');
-    panel.style.display = "none";
-    window.currentEditingId = null;
-    window.currentEditingEdge = null;
-    window.currentEditingType = null;
-    // waiting mode を解除した際はツールチップも非表示
-    hideTooltip();
+  const panel = document.getElementById('editPanel');
+  panel.style.display = "none";
+  window.currentEditingId = null;
+  window.currentEditingEdge = null;
+  window.currentEditingType = null;
+  hideTooltip();
 }
 
-// 「ここから始まる関係線を追加」ボタン用処理
+/**
+ * 「ここから始まる関係線を追加」ボタンの処理
+ */
 function startRelationFrom(nodeId) {
-    // 編集中の内容があれば適用
-    if (window.currentEditingType === 'element' && window.currentEditingId === nodeId) {
-        applyElementEdit(nodeId);
-    }
-    // waiting mode を開始：始点として nodeId を記憶
-    window.startingNodeForRelation = nodeId;
-    window.isWaitingForRelationEnd = true;
-    hideEditPanel();
-    const svgNode = document.getElementById("node_" + nodeId);
-    if (svgNode) {
-        svgNode.classList.add("node-selected");
-    }
-    // ツールチップを表示して、終点選択を促す
-    if (relationTooltip) {
-        relationTooltip.style.display = "block";
-    }
+  if (window.currentEditingType === 'element' && window.currentEditingId === nodeId) {
+    applyElementEdit(nodeId);
+  }
+  window.startingNodeForRelation = nodeId;
+  window.isWaitingForRelationEnd = true;
+  hideEditPanel();
+  const svgNode = document.getElementById("node_" + nodeId);
+  if (svgNode) {
+    svgNode.classList.add("node-selected");
+  }
+  if (relationTooltip) {
+    relationTooltip.style.display = "block";
+  }
 }
 
-// 追加要素パネルの処理
+/**
+ * 「要素追加」パネルの表示
+ */
 document.getElementById('addElementButton').addEventListener('click', function(e) {
-    e.stopPropagation();
-    const panel = document.getElementById('editPanel');
-    panel.style.left = e.clientX + "px";
-    panel.style.top = e.clientY + "px";
-    panel.innerHTML = `
-        <div>
-            <label for="newElementLabel">ラベル: </label>
-            <input type="text" id="newElementLabel" value="">
-        </div>
-        <div>
-            <label for="newElementCategory">カテゴリー: </label>
-            <select id="newElementCategory">
-                <option value="input">input</option>
-                <option value="activity">activity</option>
-                <option value="output">output</option>
-                <option value="outcome">outcome</option>
-                <option value="impact">impact</option>
-            </select>
-        </div>
-        <button onclick="addNewElement()">追加</button>
-        <button onclick="hideEditPanel()">キャンセル</button>
-    `;
-    panel.style.display = "block";
+  e.stopPropagation();
+  const panel = document.getElementById('editPanel');
+  positionPanel(panel, e.clientX, e.clientY);
+  panel.innerHTML = `
+    <div class="edit-panel-content">
+      <div class="edit-panel-section">
+        <label for="newElementLabel">ラベル</label>
+        <input type="text" id="newElementLabel" value="">
+      </div>
+      <div class="edit-panel-section">
+        <label for="newElementCategory">カテゴリー</label>
+        <select id="newElementCategory">
+          <option value="input">input</option>
+          <option value="activity">activity</option>
+          <option value="output">output</option>
+          <option value="outcome">outcome</option>
+          <option value="impact">impact</option>
+        </select>
+      </div>
+      <div class="edit-panel-buttons">
+        <button onclick="addNewElement()" class="panel-button">追加</button>
+        <button onclick="hideEditPanel()" class="panel-button">キャンセル</button>
+      </div>
+    </div>
+  `;
+  panel.style.display = "block";
+  document.getElementById("newElementLabel").focus();
 });
 
+/**
+ * 新規要素追加
+ */
 function addNewElement() {
-    if (!logicModelData) {
-        logicModelData = { title: "", elements: {}, relations: [] };
-    }
-    const label = document.getElementById('newElementLabel').value.trim();
-    const category = document.getElementById('newElementCategory').value;
-    if (!label) return;
-    saveState();
-    const id = category + elementCounters[category];
-    elementCounters[category]++;
-    logicModelData.elements[id] = { id, label, category };
-    hideEditPanel();
-    reRenderModel().then(() => {
-        highlightNewNode(id);
-    });
+  if (!logicModelData) {
+    logicModelData = { title: "", elements: {}, relations: [] };
+  }
+  const label = document.getElementById('newElementLabel').value.trim();
+  const category = document.getElementById('newElementCategory').value;
+  if (!label) return;
+  saveState();
+  const id = category + elementCounters[category];
+  elementCounters[category]++;
+  logicModelData.elements[id] = { id, label, category };
+  hideEditPanel();
+  reRenderModel().then(() => {
+    highlightNewNode(id);
+  });
 }
 
-// 編集パネル外をクリックしたときは、waiting mode（関係追加状態）があれば解除し、パネルを閉じる
+/**
+ * 編集パネル外クリックでパネル・待機状態解除
+ */
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#editPanel')) {
     clearSelection();
     if (window.isWaitingForRelationEnd) {
-        window.isWaitingForRelationEnd = false;
-        window.startingNodeForRelation = null;
-        hideTooltip();
+      window.isWaitingForRelationEnd = false;
+      window.startingNodeForRelation = null;
+      hideTooltip();
     }
     hideEditPanel();
   }
 });
 
+/**
+ * ヘルプパネルの表示
+ */
 document.getElementById('helpButton').addEventListener('click', function(e) {
-    e.stopPropagation();
-    const panel = document.getElementById('editPanel');
-    panel.style.left = e.clientX + "px";
-    panel.style.top = e.clientY + "px";
-    panel.innerHTML = `
-       <div style="font-size:14px; line-height:1.4;">
-         <h3 style="margin-top:0;">編集ヘルプ</h3>
-         <table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse; width:100%;">
-           <thead>
-             <tr style="background:#f0f0f0;">
-               <th>目的</th>
-               <th>方法</th>
-             </tr>
-           </thead>
-           <tbody>
-             <tr>
-               <td>新規要素を追加したい</td>
-               <td>
-                 「要素追加」ボタンをクリックし、表示されたフォームに必要な情報を入力して追加します。
-               </td>
-             </tr>
-             <tr>
-               <td>要素を編集・削除したい</td>
-               <td>
-                 編集・削除したい要素をクリックするとパネルが表示されるので、内容を変更または削除してください。
-               </td>
-             </tr>
-             <tr>
-               <td>関係線を追加したい</td>
-               <td>
-                 <strong>方法①:</strong> 編集パネル内の「ここから始まる関係線を追加」ボタンをクリックし、始点を確定した後、終点となる要素をクリックします。<br>
-                 <strong>方法②:</strong> Ctrl＋クリックで複数要素を選択し、関係線を追加します。
-               </td>
-             </tr>
-             <tr>
-               <td>関係線を削除したい</td>
-               <td>
-                 対象の関係線（エッジ）をクリックし、表示されるパネルから「削除」を選択します。
-               </td>
-             </tr>
-           </tbody>
-         </table>
-         <div style="text-align:right; margin-top:10px;">
-           <button onclick="hideEditPanel()">閉じる</button>
-         </div>
-       </div>
-    `;
-    panel.style.display = "block";
+  e.stopPropagation();
+  const panel = document.getElementById('editPanel');
+  positionPanel(panel, e.clientX, e.clientY);
+  panel.innerHTML = `
+    <div class="edit-panel-content">
+      <div class="edit-panel-section">
+        <h3>編集ヘルプ</h3>
+      </div>
+      <div class="edit-panel-section">
+        <table border="1" cellpadding="4" cellspacing="0" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th>目的</th>
+              <th>方法</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>新規要素追加</td>
+              <td>「要素追加」ボタンをクリックし、フォームに入力して追加</td>
+            </tr>
+            <tr>
+              <td>要素編集・削除</td>
+              <td>対象要素をクリックして表示されるパネルで操作</td>
+            </tr>
+            <tr>
+              <td>関係線追加</td>
+              <td>編集パネル内の「ここから始まる関係線を追加」ボタンまたはCtrl＋クリックで追加</td>
+            </tr>
+            <tr>
+              <td>関係線削除</td>
+              <td>対象関係（エッジ）をクリックし、パネルで「削除」ボタンを選択</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="edit-panel-buttons">
+        <button onclick="hideEditPanel()" class="panel-button">閉じる</button>
+      </div>
+    </div>
+  `;
+  panel.style.display = "block";
 });
 
-
-// Relation Tooltip Handlers
+/**
+ * Relation Tooltip 用ハンドラ
+ */
 document.addEventListener("DOMContentLoaded", function() {
   relationTooltip = document.getElementById("relationTooltip");
-
   document.addEventListener("keydown", function(e) {
     if (e.key === "Control") {
       isCtrlPressed = true;
@@ -1265,18 +1378,14 @@ document.addEventListener("DOMContentLoaded", function() {
       relationTooltip.style.display = "block";
     }
   });
-
   document.addEventListener("keyup", function(e) {
     if (e.key === "Control") {
       isCtrlPressed = false;
-      // waiting mode でなければツールチップを非表示
       if (!window.isWaitingForRelationEnd) {
-          relationTooltip.style.display = "none";
+        relationTooltip.style.display = "none";
       }
     }
   });
-
-  // マウス移動時は、Ctrl キー押下中または waiting mode のときにツールチップを更新
   document.addEventListener("mousemove", function(e) {
     if (isCtrlPressed || window.isWaitingForRelationEnd) {
       updateRelationTooltip(e);
@@ -1284,62 +1393,73 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 
-// waiting mode の際のツールチップ更新（Ctrlキーの有無にかかわらず）
+/**
+ * Relation Tooltip 更新
+ */
 function updateRelationTooltip(e) {
   if (!relationTooltip) return;
   let tooltipText = "";
   if (window.isWaitingForRelationEnd) {
-      tooltipText = "終点要素をクリック";
+    tooltipText = "終点要素をクリック";
   } else if (selectedNodesForRelation.length === 0) {
-      tooltipText = "追加したい関係の始点要素をクリック";
+    tooltipText = "追加したい関係の始点要素をクリック";
   } else {
-      tooltipText = "終点要素をクリック";
+    tooltipText = "終点要素をクリック";
   }
   relationTooltip.textContent = tooltipText;
   relationTooltip.style.left = (e.pageX + 10) + "px";
   relationTooltip.style.top = (e.pageY + 10) + "px";
 }
 
+/**
+ * Tooltip 非表示
+ */
 function hideTooltip() {
-    if (relationTooltip) {
-        relationTooltip.style.display = "none";
-    }
+  if (relationTooltip) {
+    relationTooltip.style.display = "none";
+  }
 }
 
+/**
+ * 新規追加時のハイライト
+ */
 function highlightNewRelation(from, to) {
-    const nodeFrom = document.getElementById("node_" + from);
-    const nodeTo = document.getElementById("node_" + to);
-    const edge = document.getElementById("edge_" + from + "_" + to);
-
-    if (nodeFrom) nodeFrom.classList.add("newly-added-node");
-    if (nodeTo) nodeTo.classList.add("newly-added-node");
-    if (edge) edge.classList.add("newly-added-edge");
-
-    setTimeout(() => {
-        if (nodeFrom) nodeFrom.classList.remove("newly-added-node");
-        if (nodeTo) nodeTo.classList.remove("newly-added-node");
-        if (edge) edge.classList.remove("newly-added-edge");
-    }, 500);
+  const nodeFrom = document.getElementById("node_" + from);
+  const nodeTo = document.getElementById("node_" + to);
+  const edge = document.getElementById("edge_" + from + "_" + to);
+  if (nodeFrom) nodeFrom.classList.add("newly-added-node");
+  if (nodeTo) nodeTo.classList.add("newly-added-node");
+  if (edge) edge.classList.add("newly-added-edge");
+  setTimeout(() => {
+    if (nodeFrom) nodeFrom.classList.remove("newly-added-node");
+    if (nodeTo) nodeTo.classList.remove("newly-added-node");
+    if (edge) edge.classList.remove("newly-added-edge");
+  }, 500);
 }
 
+/**
+ * 新規要素追加時のノードハイライト
+ */
 function highlightNewNode(id) {
-    const node = document.getElementById("node_" + id);
-    if (node) {
-        node.classList.add("newly-added-node");
-        setTimeout(() => {
-            node.classList.remove("newly-added-node");
-        }, 500);
-    }
+  const node = document.getElementById("node_" + id);
+  if (node) {
+    node.classList.add("newly-added-node");
+    setTimeout(() => {
+      node.classList.remove("newly-added-node");
+    }, 500);
+  }
 }
 
-// ESCキーで waiting mode（関係追加状態）をキャンセル
+/**
+ * ESCキーで待機状態を解除
+ */
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && window.isWaitingForRelationEnd) {
-        window.isWaitingForRelationEnd = false;
-        window.startingNodeForRelation = null;
-        clearSelection();
-        hideTooltip();
-    }
+  if (e.key === 'Escape' && window.isWaitingForRelationEnd) {
+    window.isWaitingForRelationEnd = false;
+    window.startingNodeForRelation = null;
+    clearSelection();
+    hideTooltip();
+  }
 });
 
 ```

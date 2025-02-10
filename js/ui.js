@@ -490,3 +490,72 @@ document.addEventListener('keydown', function(e) {
     hideTooltip();
   }
 });
+
+/**
+ * パワーポイント貼付ヘルプパネルを画面中央に大きめで表示する
+ */
+function showPowerpointHelpPanel(e) {
+  e.stopPropagation(); // このクリックイベントの伝播を止める
+  const panel = document.getElementById("powerpointHelpPanel");
+
+  // 中央に配置するためのスタイル設定
+  panel.style.position = "fixed"; // 画面全体に対して固定配置
+  panel.style.left = "50%";
+  panel.style.top = "50%";
+  panel.style.transform = "translate(-50%, -50%)";
+  panel.style.width = "600px";       // 大きめの幅（必要に応じて調整）
+  panel.style.maxWidth = "90%";      // 画面幅に合わせた最大値
+  panel.style.maxHeight = "90%";     // 画面高さに合わせた最大値
+  panel.style.overflowY = "auto";    // 内容が多い場合にスクロール可能に
+
+  // ヘルプ内容のHTML（画像を含む）
+  panel.innerHTML = `
+    <div class="edit-panel-content">
+      <div class="edit-panel-section">
+        <h3>パワポ貼付ヘルプ</h3>
+        <ol>
+          <li>
+            <strong>SVGのダウンロード</strong><br>
+            SVGダウンロードボタンをクリックして、SVGファイルをダウンロードします。
+          </li>
+          <li>
+            <strong>PowerPointへ貼り付け</strong><br>
+            ダウンロードしたSVGファイルをコピーして、PowerPoint上に貼り付けます。
+          </li>
+          <li>
+            <strong>図形に変換</strong><br>
+            貼り付けたSVG画像上で右クリックし、「図形に変換」を選択します。<br>
+            <img src="pics/zukei_ni_henkan.png" alt="図形に変換のスクリーンショット" style="max-width:100%; height:auto;">
+          </li>
+          <li>
+            <strong>グループ解除</strong><br>
+            変換後、再度右クリックして「グループ解除」を選択します。<br>
+            <img src="pics/group_kaijo.png" alt="グループ解除のスクリーンショット" style="max-width:100%; height:auto;">
+          </li>
+        </ol>
+        <p>
+          これで、書式などを編集可能な状態でPowerPointに貼り付けることができます。
+        </p>
+      </div>
+      <div class="edit-panel-buttons">
+        <button onclick="hidePowerpointHelpPanel()" class="panel-button">閉じる</button>
+      </div>
+    </div>
+  `;
+  panel.style.display = "block";
+}
+
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById("powerpointHelpPanel");
+  if (panel.style.display === "block" && !panel.contains(e.target)) {
+    hidePowerpointHelpPanel();
+  }
+});
+
+/**
+ * パワーポイント貼付ヘルプパネルを非表示にする
+ */
+function hidePowerpointHelpPanel() {
+  const panel = document.getElementById("powerpointHelpPanel");
+  panel.style.display = "none";
+}

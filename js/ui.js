@@ -229,11 +229,17 @@ function addNewElement() {
 }
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('#editPanel')) {
-    clearSelection();
-    hideEditPanel();
-  }
+    if (!e.target.closest('#editPanel')) {
+        clearSelection();
+        // 要素編集中の場合は、編集内容を適用してからパネルを閉じる
+        if (window.currentEditingType === 'element' && window.currentEditingId) {
+        applyElementEdit(window.currentEditingId);
+        } else {
+        hideEditPanel();
+        }
+    }
 });
+  
 
 document.getElementById('helpButton').addEventListener('click', function(e) {
     e.stopPropagation();
@@ -245,29 +251,13 @@ document.getElementById('helpButton').addEventListener('click', function(e) {
          <h3>編集ヘルプ</h3>
          <p>・「要素追加」ボタンで新しい要素を追加できます。</p>
          <p>・要素をクリックすると、編集・削除パネルが表示されます。</p>
-         <p>・Ctrl＋クリックで要素同士の関係を追加できます。</p>
+         <p>・Ctrlキーを押しながら関係を結びたい2つの要素を始点→終点の順番にクリックすると、その間に関係が追加されます。</p>
          <p>・エッジをクリックすると、その関係の削除が可能です。</p>
-         <p>・「元に戻す」ボタンで直前の作業を元に戻します。</p>
-         <p>・右上のボタン群から、PNG/SVGダウンロードやコマンドのコピーができます。</p>
          <button onclick="hideEditPanel()">閉じる</button>
        </div>
     `;
     panel.style.display = "block";
 });
-
-// document.addEventListener('keydown', function(e) {
-//     if (e.key === 'Delete') {
-//       if (window.currentEditingType === 'edge' && window.currentEditingEdge) {
-//         deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
-//         hideEditPanel();
-//         e.preventDefault();
-//       } else if (window.currentEditingType === 'element' && window.currentEditingId) {
-//         deleteElement(window.currentEditingId);
-//         hideEditPanel();
-//         e.preventDefault();
-//       }
-//     }
-//   }, true);
 
 // Relation Tooltip Handlers
 document.addEventListener("DOMContentLoaded", function() {

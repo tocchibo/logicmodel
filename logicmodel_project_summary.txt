@@ -200,6 +200,28 @@ textarea#commands {
   stroke: #0099B3 !important;
   stroke-width: 4px !important;
 }
+
+/* 新規追加/関係追加時のハイライト用スタイル */
+.newly-added-node polygon,
+.newly-added-node rect {
+  stroke: #FCD5B5 !important;
+  stroke-width: 4px !important;
+  fill: #F79646 !important;
+  animation: newHighlightAnimation 0.5s ease-out;
+}
+
+.newly-added-edge path {
+  stroke: #F79646 !important;
+  stroke-width: 5px !important;
+  animation: newHighlightAnimation 0.5s ease-out;
+}
+
+@keyframes newHighlightAnimation {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
 ```
 
 ### index.html
@@ -426,6 +448,22 @@ document.addEventListener('DOMContentLoaded', function(){
   const correctionTextarea = document.getElementById("correctionInstructions");
   if (correctionTextarea) {
     correctionTextarea.addEventListener('input', updateCopyCorrectionButton);
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  // テキストフィールド（INPUT, TEXTAREA, contentEditable）の編集中の場合は除外
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
+    return;
+  }
+
+  if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    undoLastAction();
+  } else if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+    e.preventDefault();
+    redoLastAction();
   }
 });
 
@@ -930,10 +968,13 @@ function handleNodeRelationSelection(node, nodeId) {
 function addRelation(from, to) {
     const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
     if (!exists) {
-        saveState();
-        logicModelData.relations.push({ from, to });
+      saveState();
+      logicModelData.relations.push({ from, to });
+      return true;
     }
+    return false;
 }
+  
 
 function clearSelection() {
     selectedNodesForRelation = [];
@@ -945,16 +986,21 @@ function clearSelection() {
     }
 }
 
+// 修正: 要素編集フォームの更新（showEditPanelForElement）
 function showEditPanelForElement(svgNode, nodeId, event) {
     const panel = document.getElementById('editPanel');
     panel.style.left = event.clientX + "px";
     panel.style.top = event.clientY + "px";
     const element = logicModelData.elements[nodeId];
     if (!element) return;
+    // literal "\n" を実際の改行に変換
+    const labelText = element.label.replace(/\\n/g, "\n");
+    // 最低3行、内容に応じて rows 数を調整
+    const rows = Math.max(3, labelText.split("\n").length);
     panel.innerHTML = `
         <div>
             <label>ラベル: </label>
-            <input type="text" id="editLabel" value="${element.label}">
+            <textarea id="editLabel" rows="${rows}" style="min-width:200px;">${labelText}</textarea>
         </div>
         <div>
             <label>カテゴリー: </label>
@@ -973,17 +1019,20 @@ function showEditPanelForElement(svgNode, nodeId, event) {
     panel.style.display = "block";
 }
 
+// 修正: 要素編集適用時（applyElementEdit）の更新
 function applyElementEdit(nodeId) {
     const newLabel = document.getElementById('editLabel').value;
     const newCategory = document.getElementById('editCategory').value;
     if (logicModelData.elements[nodeId]) {
         saveState();
-        logicModelData.elements[nodeId].label = newLabel;
+        // 実際の改行を、内部表現用の literal "\n" に変換
+        logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
         logicModelData.elements[nodeId].category = newCategory;
     }
     hideEditPanel();
     reRenderModel();
 }
+
 
 function deleteElement(nodeId) {
     if (logicModelData.elements[nodeId]) {
@@ -1092,20 +1141,6 @@ document.getElementById('helpButton').addEventListener('click', function(e) {
     panel.style.display = "block";
 });
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Delete') {
-      if (window.currentEditingType === 'edge' && window.currentEditingEdge) {
-        deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
-        hideEditPanel();
-        e.preventDefault();
-      } else if (window.currentEditingType === 'element' && window.currentEditingId) {
-        deleteElement(window.currentEditingId);
-        hideEditPanel();
-        e.preventDefault();
-      }
-    }
-  }, true);
-
 // Relation Tooltip Handlers
 document.addEventListener("DOMContentLoaded", function() {
   relationTooltip = document.getElementById("relationTooltip");
@@ -1143,6 +1178,75 @@ function updateRelationTooltip(e) {
   relationTooltip.textContent = tooltipText;
   relationTooltip.style.left = (e.pageX + 10) + "px";
   relationTooltip.style.top = (e.pageY + 10) + "px";
+}
+
+
+function highlightNewRelation(from, to) {
+// 対象のノード（始点・終点）とエッジの取得
+const nodeFrom = document.getElementById("node_" + from);
+const nodeTo = document.getElementById("node_" + to);
+const edge = document.getElementById("edge_" + from + "_" + to);
+
+if (nodeFrom) nodeFrom.classList.add("newly-added-node");
+if (nodeTo) nodeTo.classList.add("newly-added-node");
+if (edge) edge.classList.add("newly-added-edge");
+
+// 0.5秒後にクラスを除去
+setTimeout(() => {
+    if (nodeFrom) nodeFrom.classList.remove("newly-added-node");
+    if (nodeTo) nodeTo.classList.remove("newly-added-node");
+    if (edge) edge.classList.remove("newly-added-edge");
+}, 500);
+}
+
+function highlightNewNode(id) {
+    const node = document.getElementById("node_" + id);
+    if (node) {
+        node.classList.add("newly-added-node");
+        setTimeout(() => {
+        node.classList.remove("newly-added-node");
+        }, 500);
+    }
+}
+
+function handleNodeRelationSelection(node, nodeId) {
+    if (selectedNodesForRelation.includes(nodeId)) {
+      selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
+      node.classList.remove('node-selected');
+    } else {
+      selectedNodesForRelation.push(nodeId);
+      node.classList.add('node-selected');
+    }
+    if (selectedNodesForRelation.length === 2) {
+      const [from, to] = selectedNodesForRelation;
+      const relationAdded = addRelation(from, to);
+      clearSelection();
+      // 再描画完了後、新規追加された場合のみハイライトを実行
+      reRenderModel().then(() => {
+        if (relationAdded) {
+          highlightNewRelation(from, to);
+        }
+      });
+    }
+}
+  
+
+function addNewElement() {
+    if (!logicModelData) {
+        logicModelData = { title: "", elements: {}, relations: [] };
+    }
+    const label = document.getElementById('newElementLabel').value.trim();
+    const category = document.getElementById('newElementCategory').value;
+    if (!label) return;
+    saveState();
+    const id = category + elementCounters[category];
+    elementCounters[category]++;
+    logicModelData.elements[id] = { id, label, category };
+    hideEditPanel();
+    // 再描画完了後にハイライトを実行
+    reRenderModel().then(() => {
+        highlightNewNode(id);
+    });
 }
 
 ```

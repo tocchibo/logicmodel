@@ -40,11 +40,10 @@ function attachSvgEventHandlers() {
         });
         edge.addEventListener('click', function(e) {
             e.stopPropagation();
-            const edgeTitle = edge.querySelector('title');
-            if (edgeTitle) {
-                const edgeId = edgeTitle.textContent.trim();
-                const parts = edgeId.split("->").map(s => s.trim());
-                if (parts.length === 2) {
+            const edgeIdAttr = edge.getAttribute('id');
+            if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
+                const parts = edgeIdAttr.substring(5).split('_'); // "edge_"を除去してから分割
+                if (parts.length >= 2) {
                     window.currentEditingType = "edge";
                     window.currentEditingEdge = { from: parts[0], to: parts[1] };
                     showEditPanelForEdge(edge, window.currentEditingEdge, e);
@@ -239,3 +238,17 @@ document.getElementById('helpButton').addEventListener('click', function(e) {
     `;
     panel.style.display = "block";
 });
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Delete') {
+      if (window.currentEditingType === 'edge' && window.currentEditingEdge) {
+        deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
+        hideEditPanel();
+        e.preventDefault();
+      } else if (window.currentEditingType === 'element' && window.currentEditingId) {
+        deleteElement(window.currentEditingId);
+        hideEditPanel();
+        e.preventDefault();
+      }
+    }
+  }, true);

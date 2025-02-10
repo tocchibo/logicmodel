@@ -12,37 +12,42 @@
 <body>
   <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5" oninput="processCommands()"></textarea>
   
-  <div class="toolbar">
-    <div class="toolbar-group">
-      <select id="splineType" onchange="reRenderModel()" title="線のスタイル">
-        <option value="line">直線</option>
-        <option value="spline">曲線</option>
+  <!-- 編集メニュー：コマンドが入力されたときのみ表示 -->
+  <div class="editing-menu" style="display:none;">
+    <button id="addElementButton" title="新しい要素を追加">要素追加</button>
+    <button id="undoButton" onclick="undoLastAction()" title="元に戻す" disabled>&#x21B6;</button>
+    <button id="redoButton" onclick="redoLastAction()" title="やり直す" disabled>&#x21B7;</button>
+    <button id="helpButton" title="編集ヘルプの表示">ヘルプ</button>
+  </div>
+
+  <!-- 描画領域：コマンドが入力されたときのみ表示 -->
+  <div id="outputContainer" style="display:none;">
+    <div id="output"></div>
+    <!-- ロジックモデル表示スタイルコントロール（左下に固定） -->
+    <div id="styleControls">
+      <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
+        <option value="line">直線 (シンプルな直線接続)</option>
+        <option value="spline">曲線 (やわらかいカーブ接続)</option>
       </select>
-      <select id="edgeType" onchange="reRenderModel()" title="エッジのスタイル">
-        <option value="line">線</option>
-        <option value="arrow">矢印</option>
+      <select id="edgeType" onchange="reRenderModel()" title="接続線の先端">
+        <option value="line">線のみ (方向なし)</option>
+        <option value="arrow">矢印 (方向を示す)</option>
+      </select>
+      <select id="edgeAttachmentStyle" onchange="reRenderModel()" title="接続位置の配置">
+        <option value="fixed">固定配置 (要素の左右端に固定)</option>
+        <option value="auto">自動配置 (最適な位置に自動調整)</option>
       </select>
     </div>
-    <div class="toolbar-group">
-      <button onclick="clearCommands()" title="コマンド欄をクリア">クリア</button>
-    </div>
-    <div class="toolbar-group download-group">
+    <!-- ダウンロードコントロール（右下に固定） -->
+    <div id="downloadControls">
       <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
       <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
     </div>
   </div>
 
-  <div class="editing-menu">
-    <button id="addElementButton" title="新しい要素を追加">要素追加</button>
-    <button id="undoButton" onclick="undoLastAction()" title="直前の作業を元に戻す">元に戻す</button>
-    <button id="helpButton" title="編集ヘルプの表示">ヘルプ</button>
-  </div>
-  
-  <div id="output"></div>
-  
-  <!-- 修正指示入力フォーム（ロジックモデル描画後に表示） -->
+  <!-- 修正指示フォーム：コマンドが入力されたときのみ表示 -->
   <div id="correctionForm" style="display:none;">
-    <textarea id="correctionInstructions" placeholder="ここに修正指示を記載してください" rows="3"></textarea>
+    <textarea id="correctionInstructions" placeholder="ここに修正指示を記載してください" rows="5"></textarea>
     <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
     <span id="copySuccess" class="copy-success">コピーしました</span>
   </div>

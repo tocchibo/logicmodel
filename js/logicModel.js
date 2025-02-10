@@ -84,6 +84,7 @@ function parseCommands(input) {
 function generateDotFromModel(model) {
   const splineType = document.getElementById("splineType").value;
   const edgeType = document.getElementById("edgeType").value;
+  const attachmentStyle = document.getElementById("edgeAttachmentStyle").value;
 
   let dotData = `digraph G {
     graph [
@@ -123,7 +124,11 @@ function generateDotFromModel(model) {
   });
 
   model.relations.forEach(relation => {
-    dotData += `${relation.from} -> ${relation.to} [id="edge_${relation.from}_${relation.to}"]\n`;
+    if (attachmentStyle === "fixed") {
+      dotData += `${relation.from} -> ${relation.to} [id="edge_${relation.from}_${relation.to}", tailport=e, headport=w]\n`;
+    } else {
+      dotData += `${relation.from} -> ${relation.to} [id="edge_${relation.from}_${relation.to}"]\n`;
+    }
   });
 
   dotData += "}\n";

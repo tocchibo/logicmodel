@@ -281,6 +281,7 @@ document.getElementById('addElementButton').addEventListener('click', function(e
         <button onclick="hideEditPanel()">キャンセル</button>
     `;
     panel.style.display = "block";
+    document.getElementById("newElementLabel").focus();
 });
 
 function addNewElement() {

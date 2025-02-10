@@ -100,16 +100,21 @@ function clearSelection() {
     }
 }
 
+// 修正: 要素編集フォームの更新（showEditPanelForElement）
 function showEditPanelForElement(svgNode, nodeId, event) {
     const panel = document.getElementById('editPanel');
     panel.style.left = event.clientX + "px";
     panel.style.top = event.clientY + "px";
     const element = logicModelData.elements[nodeId];
     if (!element) return;
+    // literal "\n" を実際の改行に変換
+    const labelText = element.label.replace(/\\n/g, "\n");
+    // 最低3行、内容に応じて rows 数を調整
+    const rows = Math.max(3, labelText.split("\n").length);
     panel.innerHTML = `
         <div>
             <label>ラベル: </label>
-            <input type="text" id="editLabel" value="${element.label}">
+            <textarea id="editLabel" rows="${rows}" style="min-width:200px;">${labelText}</textarea>
         </div>
         <div>
             <label>カテゴリー: </label>
@@ -128,17 +133,20 @@ function showEditPanelForElement(svgNode, nodeId, event) {
     panel.style.display = "block";
 }
 
+// 修正: 要素編集適用時（applyElementEdit）の更新
 function applyElementEdit(nodeId) {
     const newLabel = document.getElementById('editLabel').value;
     const newCategory = document.getElementById('editCategory').value;
     if (logicModelData.elements[nodeId]) {
         saveState();
-        logicModelData.elements[nodeId].label = newLabel;
+        // 実際の改行を、内部表現用の literal "\n" に変換
+        logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
         logicModelData.elements[nodeId].category = newCategory;
     }
     hideEditPanel();
     reRenderModel();
 }
+
 
 function deleteElement(nodeId) {
     if (logicModelData.elements[nodeId]) {
@@ -247,19 +255,19 @@ document.getElementById('helpButton').addEventListener('click', function(e) {
     panel.style.display = "block";
 });
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Delete') {
-      if (window.currentEditingType === 'edge' && window.currentEditingEdge) {
-        deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
-        hideEditPanel();
-        e.preventDefault();
-      } else if (window.currentEditingType === 'element' && window.currentEditingId) {
-        deleteElement(window.currentEditingId);
-        hideEditPanel();
-        e.preventDefault();
-      }
-    }
-  }, true);
+// document.addEventListener('keydown', function(e) {
+//     if (e.key === 'Delete') {
+//       if (window.currentEditingType === 'edge' && window.currentEditingEdge) {
+//         deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
+//         hideEditPanel();
+//         e.preventDefault();
+//       } else if (window.currentEditingType === 'element' && window.currentEditingId) {
+//         deleteElement(window.currentEditingId);
+//         hideEditPanel();
+//         e.preventDefault();
+//       }
+//     }
+//   }, true);
 
 // Relation Tooltip Handlers
 document.addEventListener("DOMContentLoaded", function() {

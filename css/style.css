@@ -200,3 +200,6 @@ textarea#commands {
   50% { opacity: 0.5; }
   100% { opacity: 1; }
 }
+
+.edit-panel-section { margin-bottom: 10px; }
+.edit-panel-buttons { display: flex; gap: 5px; flex-wrap: wrap; }

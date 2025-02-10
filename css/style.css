@@ -134,18 +134,48 @@ textarea#commands {
 }
 
 /* SVG 内のホバーエフェクト */
-.node-hover {
-  stroke: red !important;
+
+/* 要素（ノード）にマウスオーバー時：
+   ・ボックスの枠と背景色を #93CDDD に変更
+   ・枠は太くなる（stroke-width: 3px）
+   ・テキスト色は黒に固定 */
+.node-hover polygon,
+.node-hover rect {
+  stroke: #93CDDD !important;
   stroke-width: 3px !important;
+  fill: #93CDDD !important;
   cursor: pointer;
 }
-.node-selected {
-  stroke: blue !important;
+.node-hover text {
+  fill: black !important;
+}
+
+/* Ctrl＋クリックで選択した要素（関係追加用）のスタイル：
+   ・ボックスの枠と背景色を #93CDDD に変更
+   ・枠は太く、点線にしてアニメーション（点滅・流れるような動き）を追加 */
+.node-selected polygon,
+.node-selected rect {
+  stroke: #93CDDD !important;
   stroke-width: 3px !important;
+  fill: #93CDDD !important;
+  stroke-dasharray: 4, 4;
+  animation: dashAnimation 1s linear infinite;
   cursor: pointer;
 }
-.edge-hover {
-  stroke: red !important;
-  stroke-width: 3px !important;
-  cursor: pointer;
+.node-selected text {
+  fill: black !important;
+}
+
+@keyframes dashAnimation {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 8;
+  }
+}
+
+.edge-hover path {
+  stroke: #0099B3 !important;
+  stroke-width: 4px !important;
 }

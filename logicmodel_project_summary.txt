@@ -19,62 +19,140 @@
 ### css\style.css
 
 ```
+@import url('https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap');
+
 body {
+  font-family: 'Roboto', sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
 }
-#commands {
+
+textarea#commands {
   width: 100%;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  font-size: 14px;
 }
+
+/* 編集メニュー */
+.editing-menu {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  padding: 10px 5px 0;
+  border-top: 1px solid #ccc;
+}
+
+.editing-menu button {
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* 出力領域 */
 #output {
   width: 100%;
   text-align: center;
   position: relative;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.controls {
+
+/* 出力コンテナと下部コントロール */
+#outputContainer {
+  position: relative;
   margin-bottom: 20px;
 }
-select {
+
+#styleControls {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(255,255,255,0.9);
   padding: 5px;
-  margin-right: 10px;
+  border-radius: 4px;
 }
-label {
+
+#styleControls select {
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   margin-right: 5px;
 }
-button {
-  padding: 5px 10px;
-  margin-right: 10px;
+
+#downloadControls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(255,255,255,0.9);
+  padding: 5px;
+  border-radius: 4px;
 }
-.copy-success {
-  color: green;
-  display: none;
-  margin-left: 10px;
+
+#downloadControls button {
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  margin-left: 5px;
 }
-/* 非表示のcanvas */
+
+/* 修正指示入力フォーム */
+#correctionForm {
+  margin-top: 10px;
+}
+
+#correctionForm textarea {
+  width: 100%;
+  padding: 6px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+#correctionForm button {
+  margin-top: 5px;
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* 非表示のキャンバス */
 #tempCanvas {
   display: none;
 }
 
-/* 編集パネル用スタイル */
+/* 編集パネル */
 .edit-panel {
   position: absolute;
   background: #fff;
   border: 1px solid #ccc;
   padding: 10px;
   z-index: 1000;
-  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-.context-menu {
-  position: absolute;
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 5px;
-  z-index: 1000;
-  box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
-}
-/* マウスオーバー・選択時のハイライト */
+
+/* SVG 内のホバーエフェクト */
 .node-hover {
   stroke: red !important;
   stroke-width: 3px !important;
@@ -108,37 +186,50 @@ button {
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
 </head>
 <body>
-  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="10" oninput="processCommands()"></textarea>
-  <br>
-  <div class="controls">
-    <label for="splineType">線のスタイル:</label>
-    <select id="splineType" onchange="reRenderModel()">
-      <option value="line">直線</option>
-      <option value="spline">曲線</option>
-    </select>
-    
-    <label for="edgeType">エッジのスタイル:</label>
-    <select id="edgeType" onchange="reRenderModel()">
-      <option value="line">線</option>
-      <option value="arrow">矢印</option>
-    </select>
-    
-    <button onclick="clearAll()">クリア</button>
-    <button id="downloadPngButton" onclick="downloadPNG()">PNGとしてダウンロード</button>
-    <button id="downloadSvgButton" onclick="downloadSVG()">SVGとしてダウンロード</button>
-    <button id="addElementButton">要素の追加</button>
-    <button id="copyCommandsButton" onclick="outputCommands()">コマンド出力</button>
-    <button id="helpButton">編集ヘルプ</button>
-    <span id="copySuccess" class="copy-success">✓ コピーしました</span>
-
+  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5" oninput="processCommands()"></textarea>
+  
+  <!-- 編集メニュー：コマンドが入力されたときのみ表示 -->
+  <div class="editing-menu" style="display:none;">
+    <button id="addElementButton" title="新しい要素を追加">要素追加</button>
+    <button id="undoButton" onclick="undoLastAction()" title="元に戻す" disabled>&#x21B6;</button>
+    <button id="redoButton" onclick="redoLastAction()" title="やり直す" disabled>&#x21B7;</button>
+    <button id="helpButton" title="編集ヘルプの表示">ヘルプ</button>
   </div>
-  <div id="output"></div>
+
+  <!-- 描画領域：コマンドが入力されたときのみ表示 -->
+  <div id="outputContainer" style="display:none;">
+    <div id="output"></div>
+    <!-- ロジックモデル表示スタイルコントロール（左下に固定） -->
+    <div id="styleControls">
+      <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
+        <option value="line">直線</option>
+        <option value="spline">曲線</option>
+      </select>
+      <select id="edgeType" onchange="reRenderModel()" title="接続線の先端">
+        <option value="line">方向表示なし</option>
+        <option value="arrow">方向表示あり</option>
+      </select>
+      <select id="edgeAttachmentStyle" onchange="reRenderModel()" title="接続位置の配置">
+        <option value="fixed">線の始点終点を固定</option>
+        <option value="auto">線の始点終点を自動配置</option>
+      </select>
+    </div>
+    <!-- ダウンロードコントロール（右下に固定） -->
+    <div id="downloadControls">
+      <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
+      <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
+    </div>
+  </div>
+
+  <!-- 修正指示フォーム：コマンドが入力されたときのみ表示 -->
+  <div id="correctionForm" style="display:none;">
+    <textarea id="correctionInstructions" placeholder="ここに修正指示を記載してください" rows="5"></textarea>
+    <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
+    <span id="copySuccess" class="copy-success">コピーしました</span>
+  </div>
+  
   <canvas id="tempCanvas"></canvas>
-
-  <!-- 編集用のポップアップパネル -->
-  <div id="editPanel" class="edit-panel" style="display:none;">
-    <div id="editContent"></div>
-  </div>
+  <div id="editPanel" class="edit-panel" style="display:none;"></div>
 
   <script src="js/downloads.js"></script>
   <script src="js/logicModel.js"></script>
@@ -156,71 +247,150 @@ button {
 /* js/app.js */
 let lastProcessTime = 0;
 const DEBOUNCE_TIME = 300;
-let logicModelData = null;  // 内部で保持するJSON形式のロジックモデル
-// 各カテゴリーごとのユニークなID生成用カウンター
+let logicModelData = null;
 let elementCounters = {
-    input: 1,
-    activity: 1,
-    output: 1,
-    outcome: 1,
-    impact: 1
+  input: 1,
+  activity: 1,
+  output: 1,
+  outcome: 1,
+  impact: 1
 };
 
-async function processCommands() {
-    const currentTime = Date.now();
-    if (currentTime - lastProcessTime < DEBOUNCE_TIME) {
-        return;
-    }
-    lastProcessTime = currentTime;
+let undoStack = [];
+let redoStack = [];
+let isEdited = false;
 
-    const commands = document.getElementById('commands').value;
-    if (commands.trim() === '') {
-        document.getElementById('output').innerHTML = '';
-        return;
-    }
-    // コマンドをパースして内部JSONモデルに変換
-    logicModelData = parseCommands(commands);
-    // 既存要素からカウンターを更新
-    updateElementCounters();
-    await renderLogicModelFromJSON(logicModelData);
+function updateUndoRedoButtons() {
+  const undoBtn = document.getElementById("undoButton");
+  const redoBtn = document.getElementById("redoButton");
+  if (undoBtn) undoBtn.disabled = (undoStack.length === 0);
+  if (redoBtn) redoBtn.disabled = (redoStack.length === 0);
 }
+
+function saveState() {
+  if (logicModelData) {
+    undoStack.push(JSON.parse(JSON.stringify(logicModelData)));
+    isEdited = true;
+    redoStack = [];
+    updateUndoRedoButtons();
+  }
+}
+
+async function processCommands() {
+  const currentTime = Date.now();
+  if (currentTime - lastProcessTime < DEBOUNCE_TIME) return;
+  lastProcessTime = currentTime;
+
+  const commands = document.getElementById('commands').value;
+  const editingMenu = document.querySelector('.editing-menu');
+  const outputContainer = document.getElementById('outputContainer');
+
+  document.getElementById("copySuccess").style.display = "none";
+
+  if (commands.trim() === '') {
+    document.getElementById('output').innerHTML = '';
+    document.getElementById("correctionForm").style.display = "none";
+    if (editingMenu) editingMenu.style.display = 'none';
+    if (outputContainer) outputContainer.style.display = 'none';
+    return;
+  } else {
+    if (editingMenu) editingMenu.style.display = 'flex';
+    if (outputContainer) outputContainer.style.display = 'block';
+  }
+  
+  logicModelData = parseCommands(commands);
+  isEdited = false;
+  updateElementCounters();
+  undoStack = [];
+  redoStack = [];
+  updateUndoRedoButtons();
+  await renderLogicModelFromJSON(logicModelData);
+}
+
 
 function updateElementCounters() {
-    elementCounters = { input: 1, activity: 1, output: 1, outcome: 1, impact: 1 };
-    for (const id in logicModelData.elements) {
-        const elem = logicModelData.elements[id];
-        const cat = elem.category;
-        const num = parseInt(id.replace(cat, '')) || 0;
-        if (num >= elementCounters[cat]) {
-            elementCounters[cat] = num + 1;
-        }
+  elementCounters = { input: 1, activity: 1, output: 1, outcome: 1, impact: 1 };
+  for (const id in logicModelData.elements) {
+    const elem = logicModelData.elements[id];
+    const cat = elem.category;
+    const num = parseInt(id.replace(cat, '')) || 0;
+    if (num >= elementCounters[cat]) {
+      elementCounters[cat] = num + 1;
     }
+  }
 }
 
-function clearAll() {
+function clearCommands() {
   document.getElementById('commands').value = '';
   document.getElementById('output').innerHTML = '';
-  // 空のモデルに初期化
+  document.getElementById("correctionForm").style.display = "none";
+  const editingMenu = document.querySelector('.editing-menu');
+  const outputContainer = document.getElementById('outputContainer');
+  if (editingMenu) editingMenu.style.display = 'none';
+  if (outputContainer) outputContainer.style.display = 'none';
   logicModelData = { title: "", elements: {}, relations: [] };
+  undoStack = [];
+  redoStack = [];
+  isEdited = false;
+  updateUndoRedoButtons();
 }
 
+function undoLastAction() {
+  if (undoStack.length > 0) {
+    redoStack.push(JSON.parse(JSON.stringify(logicModelData)));
+    logicModelData = undoStack.pop();
+    updateUndoRedoButtons();
+    reRenderModel();
+  }
+}
 
-// splineType や edgeType の変更時に再描画
+function redoLastAction() {
+  if (redoStack.length > 0) {
+    undoStack.push(JSON.parse(JSON.stringify(logicModelData)));
+    logicModelData = redoStack.pop();
+    updateUndoRedoButtons();
+    reRenderModel();
+  }
+}
+
 async function reRenderModel() {
-    if (logicModelData) {
-        await renderLogicModelFromJSON(logicModelData);
-    }
+  if (logicModelData) await renderLogicModelFromJSON(logicModelData);
 }
 
-// Global delete キーイベント（編集中の対象を削除）
-document.addEventListener('keydown', function(e) {
-    if (e.key === "Delete") {
-        if (window.currentEditingType === "element" && window.currentEditingId) {
-            deleteElement(window.currentEditingId);
-        } else if (window.currentEditingType === "edge" && window.currentEditingEdge) {
-            deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
-        }
-    }
+function updateCopyCorrectionButton() {
+  const btn = document.getElementById("copyCorrectionButton");
+  const instructions = document.getElementById("correctionInstructions").value.trim();
+  btn.disabled = (!isEdited && instructions === "");
+}
+
+function copyCorrectionInstructions() {
+  const instructions = document.getElementById("correctionInstructions").value.trim();
+  let textToCopy = "";
+  if (isEdited) {
+    textToCopy = generateCommandsFromModel(logicModelData) + "\n\n" +
+                 "このようにロジックモデルを修正しました。この修正に加え、以下を修正：" + "\n" +
+                 instructions;
+  } else {
+    textToCopy = instructions;
+  }
+  navigator.clipboard.writeText(textToCopy)
+    .then(() => {
+      const copySuccess = document.getElementById('copySuccess');
+      copySuccess.style.display = 'inline';
+      setTimeout(() => {
+        copySuccess.style.display = 'none';
+      }, 2000);
+    })
+    .catch(err => {
+      console.error("コピーに失敗しました:", err);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  const correctionTextarea = document.getElementById("correctionInstructions");
+  if (correctionTextarea) {
+    correctionTextarea.addEventListener('input', updateCopyCorrectionButton);
+  }
 });
 
 ```
@@ -478,7 +648,6 @@ function downloadSVG() {
 ```
 /* js/logicModel.js */
 
-// ヘルパー関数：引用符内のカンマを無視して文字列を分割
 function splitRespectingQuotes(str, delimiter) {
   const result = [];
   let current = "";
@@ -509,14 +678,12 @@ function parseCommands(input) {
     relations: [],
   };
 
-  // セミコロン（;）で各コマンドを分割
   const commands = input
     .split(";")
     .map(cmd => cmd.trim())
     .filter(cmd => cmd.length > 0);
 
   commands.forEach(cmd => {
-    // コマンドタイプを抽出（TITLE, CREATE, RELATE, STEP, COMPLETE）
     const match = cmd.match(/^(\w+)\b(.*)$/);
     if (!match) return;
     const commandType = match[1].toUpperCase();
@@ -524,31 +691,25 @@ function parseCommands(input) {
 
     switch (commandType) {
       case "TITLE":
-        // TITLE "タイトル"
         const titleMatch = rest.match(/^"(.*)"$/);
         if (titleMatch) {
           model.title = titleMatch[1];
         }
         break;
-
       case "CREATE":
-        // CREATE {element_id} "ラベル", {element_id} "ラベル", ...
         const elementsList = splitRespectingQuotes(rest, ",");
         elementsList.forEach(item => {
           const elementMatch = item.match(/^(\S+)\s+"(.*)"$/);
           if (elementMatch) {
             const id = elementMatch[1];
             const label = elementMatch[2];
-            // id の先頭（input, activity, …）からカテゴリーを判定
             const catMatch = id.match(/^(input|activity|output|outcome|impact)/i);
             const category = catMatch ? catMatch[1].toLowerCase() : "unknown";
             model.elements[id] = { id, label, category };
           }
         });
         break;
-
       case "RELATE":
-        // RELATE {element_id1} {element_id2}, {element_id1} {element_id2}, ...
         const relationsList = splitRespectingQuotes(rest, ",");
         relationsList.forEach(item => {
           const tokens = item.trim().split(/\s+/);
@@ -557,12 +718,9 @@ function parseCommands(input) {
           }
         });
         break;
-
-      // STEP, COMPLETE などは表示上の補助なので無視
       case "STEP":
       case "COMPLETE":
         break;
-
       default:
         break;
     }
@@ -574,6 +732,7 @@ function parseCommands(input) {
 function generateDotFromModel(model) {
   const splineType = document.getElementById("splineType").value;
   const edgeType = document.getElementById("edgeType").value;
+  const attachmentStyle = document.getElementById("edgeAttachmentStyle").value;
 
   let dotData = `digraph G {
     graph [
@@ -593,7 +752,6 @@ function generateDotFromModel(model) {
     label="${model.title}";
     labelloc="t";
     fontsize=24;
-
   `;
 
   const categories = ["input", "activity", "output", "outcome", "impact"];
@@ -603,12 +761,10 @@ function generateDotFromModel(model) {
       color="transparent";
       fillcolor="#f5f5f5";
       label="${category}"\n`;
-
     for (const id in model.elements) {
       const element = model.elements[id];
       if (element.category === category) {
         const label = element.label.split("\\n").join("\\n");
-        // ノードに id 属性を付与（例：node_input1）
         dotData += `${id} [label="${label}", id="node_${id}"]\n`;
       }
     }
@@ -616,8 +772,11 @@ function generateDotFromModel(model) {
   });
 
   model.relations.forEach(relation => {
-    // エッジにも id 属性を付与（例：edge_input1_activity2）
-    dotData += `${relation.from} -> ${relation.to} [id="edge_${relation.from}_${relation.to}"]\n`;
+    if (attachmentStyle === "fixed") {
+      dotData += `${relation.from} -> ${relation.to} [id="edge_${relation.from}_${relation.to}", tailport=e, headport=w]\n`;
+    } else {
+      dotData += `${relation.from} -> ${relation.to} [id="edge_${relation.from}_${relation.to}"]\n`;
+    }
   });
 
   dotData += "}\n";
@@ -633,8 +792,12 @@ async function renderLogicModelFromJSON(model) {
     const output = document.getElementById("output");
     output.innerHTML = "";
     output.appendChild(svg);
-    // SVG 内のノード・エッジに対して編集用のイベントハンドラを設定
     attachSvgEventHandlers();
+    // 修正指示フォームを表示し、コピー用ボタンの状態を更新
+    document.getElementById("correctionForm").style.display = "block";
+    if (typeof updateCopyCorrectionButton === "function") {
+      updateCopyCorrectionButton();
+    }
   } catch (error) {
     console.error("Error rendering logic model:", error);
     const output = document.getElementById("output");
@@ -649,11 +812,6 @@ async function renderLogicModelFromJSON(model) {
 ```
 /* js/ui.js */
 
-let selectedNodesForRelation = []; // 関係追加のために ctrl＋クリックで選択した要素
-window.currentEditingId = null;      // 現在編集中の要素ID（elementの場合）
-window.currentEditingType = null;    // "element" または "edge"
-window.currentEditingEdge = null;    // { from, to }（edgeの場合）
-
 // SVG描画後に各ノード・エッジにイベントを設定
 function attachSvgEventHandlers() {
     const svg = document.querySelector('#output svg');
@@ -663,7 +821,6 @@ function attachSvgEventHandlers() {
     const nodes = svg.querySelectorAll('g.node');
     nodes.forEach(node => {
         node.style.cursor = "pointer";
-        // マウスオーバーでハイライト
         node.addEventListener('mouseover', function() {
             node.classList.add('node-hover');
         });
@@ -672,13 +829,10 @@ function attachSvgEventHandlers() {
         });
         node.addEventListener('click', function(e) {
             e.stopPropagation();
-            // 多くの場合、ノード内に <title> 要素があり、そこに id が入っている
             const nodeId = node.querySelector('title').textContent.trim();
             if (e.ctrlKey) {
-                // ctrl＋クリックなら関係追加用の選択
                 handleNodeRelationSelection(node, nodeId);
             } else {
-                // 通常クリックなら編集パネルを表示
                 window.currentEditingType = "element";
                 window.currentEditingId = nodeId;
                 showEditPanelForElement(node, nodeId, e);
@@ -698,12 +852,10 @@ function attachSvgEventHandlers() {
         });
         edge.addEventListener('click', function(e) {
             e.stopPropagation();
-            // エッジ内の <title> から "from -> to" の情報を取得
-            const edgeTitle = edge.querySelector('title');
-            if (edgeTitle) {
-                const edgeId = edgeTitle.textContent.trim();
-                const parts = edgeId.split("->").map(s => s.trim());
-                if (parts.length === 2) {
+            const edgeIdAttr = edge.getAttribute('id');
+            if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
+                const parts = edgeIdAttr.substring(5).split('_'); // "edge_"を除去してから分割
+                if (parts.length >= 2) {
                     window.currentEditingType = "edge";
                     window.currentEditingEdge = { from: parts[0], to: parts[1] };
                     showEditPanelForEdge(edge, window.currentEditingEdge, e);
@@ -712,7 +864,6 @@ function attachSvgEventHandlers() {
         });
     });
     
-    // SVGの空白部分をクリックしたときは選択解除・パネル非表示
     svg.addEventListener('click', function(e) {
         clearSelection();
         hideEditPanel();
@@ -721,7 +872,6 @@ function attachSvgEventHandlers() {
 
 function handleNodeRelationSelection(node, nodeId) {
     if (selectedNodesForRelation.includes(nodeId)) {
-        // 既に選択済みなら解除
         selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
         node.classList.remove('node-selected');
     } else {
@@ -739,6 +889,7 @@ function handleNodeRelationSelection(node, nodeId) {
 function addRelation(from, to) {
     const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
     if (!exists) {
+        saveState();
         logicModelData.relations.push({ from, to });
     }
 }
@@ -785,6 +936,7 @@ function applyElementEdit(nodeId) {
     const newLabel = document.getElementById('editLabel').value;
     const newCategory = document.getElementById('editCategory').value;
     if (logicModelData.elements[nodeId]) {
+        saveState();
         logicModelData.elements[nodeId].label = newLabel;
         logicModelData.elements[nodeId].category = newCategory;
     }
@@ -793,8 +945,11 @@ function applyElementEdit(nodeId) {
 }
 
 function deleteElement(nodeId) {
-    delete logicModelData.elements[nodeId];
-    logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
+    if (logicModelData.elements[nodeId]) {
+        saveState();
+        delete logicModelData.elements[nodeId];
+        logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
+    }
     hideEditPanel();
     reRenderModel();
 }
@@ -814,6 +969,7 @@ function showEditPanelForEdge(edgeElement, edgeData, event) {
 }
 
 function deleteEdge(from, to) {
+    saveState();
     logicModelData.relations = logicModelData.relations.filter(rel => !(rel.from === from && rel.to === to));
     hideEditPanel();
     reRenderModel();
@@ -827,11 +983,8 @@ function hideEditPanel() {
     window.currentEditingType = null;
 }
 
-// 「要素の追加」ボタンのハンドラ（修正済み）
 document.getElementById('addElementButton').addEventListener('click', function(e) {
-    // クリック時のイベントのバブリングを止めることで、グローバルなクリックイベントに引っかからないようにする
     e.stopPropagation();
-    
     const panel = document.getElementById('editPanel');
     panel.style.left = e.clientX + "px";
     panel.style.top = e.clientY + "px";
@@ -856,16 +1009,14 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     panel.style.display = "block";
 });
 
-
 function addNewElement() {
-    // logicModelData が null なら初期化する
     if (!logicModelData) {
         logicModelData = { title: "", elements: {}, relations: [] };
     }
-    
     const label = document.getElementById('newElementLabel').value.trim();
     const category = document.getElementById('newElementCategory').value;
     if (!label) return;
+    saveState();
     const id = category + elementCounters[category];
     elementCounters[category]++;
     logicModelData.elements[id] = { id, label, category };
@@ -873,8 +1024,6 @@ function addNewElement() {
     reRenderModel();
 }
 
-
-// ページ全体のクリックイベント：編集パネル以外の場所をクリックしたら選択解除
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#editPanel')) {
     clearSelection();
@@ -882,29 +1031,38 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// 編集ヘルプボタンのイベントハンドラ
 document.getElementById('helpButton').addEventListener('click', function(e) {
-    // クリック時にグローバルなクリックイベントへ伝播しないようにする
     e.stopPropagation();
-    
-    // editPanel を表示する
     const panel = document.getElementById('editPanel');
     panel.style.left = e.clientX + "px";
     panel.style.top = e.clientY + "px";
     panel.innerHTML = `
        <div>
-         <h3>編集方法のヘルプ</h3>
-         <p>・「要素の追加」ボタンをクリックすると、新しい要素を追加できます。</p>
-         <p>・既存の要素をクリックすると、編集または削除が可能なポップアップが表示されます。</p>
-         <p>・Ctrlキーを押しながら2つの要素をクリックすると、その間に関係を追加できます。</p>
-         <p>・エッジ（関係）をクリックすると、関係の削除が可能です。</p>
-         <p>・ページ内の何もないところをクリックすると、選択状態が解除されます。</p>
+         <h3>編集ヘルプ</h3>
+         <p>・「要素追加」ボタンで新しい要素を追加できます。</p>
+         <p>・要素をクリックすると、編集・削除パネルが表示されます。</p>
+         <p>・Ctrl＋クリックで要素同士の関係を追加できます。</p>
+         <p>・エッジをクリックすると、その関係の削除が可能です。</p>
+         <p>・「元に戻す」ボタンで直前の作業を元に戻します。</p>
+         <p>・右上のボタン群から、PNG/SVGダウンロードやコマンドのコピーができます。</p>
          <button onclick="hideEditPanel()">閉じる</button>
        </div>
     `;
     panel.style.display = "block";
 });
 
-
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Delete') {
+      if (window.currentEditingType === 'edge' && window.currentEditingEdge) {
+        deleteEdge(window.currentEditingEdge.from, window.currentEditingEdge.to);
+        hideEditPanel();
+        e.preventDefault();
+      } else if (window.currentEditingType === 'element' && window.currentEditingId) {
+        deleteElement(window.currentEditingId);
+        hideEditPanel();
+        e.preventDefault();
+      }
+    }
+  }, true);
 ```
 

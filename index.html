@@ -26,16 +26,16 @@
     <!-- ロジックモデル表示スタイルコントロール（左下に固定） -->
     <div id="styleControls">
       <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
-        <option value="line">直線 (シンプルな直線接続)</option>
-        <option value="spline">曲線 (やわらかいカーブ接続)</option>
+        <option value="line">直線</option>
+        <option value="spline">曲線</option>
       </select>
       <select id="edgeType" onchange="reRenderModel()" title="接続線の先端">
-        <option value="line">線のみ (方向なし)</option>
-        <option value="arrow">矢印 (方向を示す)</option>
+        <option value="line">方向表示なし</option>
+        <option value="arrow">方向表示あり</option>
       </select>
       <select id="edgeAttachmentStyle" onchange="reRenderModel()" title="接続位置の配置">
-        <option value="fixed">固定配置 (要素の左右端に固定)</option>
-        <option value="auto">自動配置 (最適な位置に自動調整)</option>
+        <option value="fixed">線の始点終点を固定</option>
+        <option value="auto">線の始点終点を自動配置</option>
       </select>
     </div>
     <!-- ダウンロードコントロール（右下に固定） -->

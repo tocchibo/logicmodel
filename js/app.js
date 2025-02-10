@@ -146,3 +146,19 @@ document.addEventListener('DOMContentLoaded', function(){
     correctionTextarea.addEventListener('input', updateCopyCorrectionButton);
   }
 });
+
+document.addEventListener('keydown', function(e) {
+  // テキストフィールド（INPUT, TEXTAREA, contentEditable）の編集中の場合は除外
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
+    return;
+  }
+
+  if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    undoLastAction();
+  } else if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+    e.preventDefault();
+    redoLastAction();
+  }
+});

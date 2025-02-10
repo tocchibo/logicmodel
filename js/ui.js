@@ -82,10 +82,13 @@ function handleNodeRelationSelection(node, nodeId) {
 function addRelation(from, to) {
     const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
     if (!exists) {
-        saveState();
-        logicModelData.relations.push({ from, to });
+      saveState();
+      logicModelData.relations.push({ from, to });
+      return true;
     }
+    return false;
 }
+  
 
 function clearSelection() {
     selectedNodesForRelation = [];
@@ -328,22 +331,25 @@ function highlightNewNode(id) {
 
 function handleNodeRelationSelection(node, nodeId) {
     if (selectedNodesForRelation.includes(nodeId)) {
-        selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
-        node.classList.remove('node-selected');
+      selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
+      node.classList.remove('node-selected');
     } else {
-        selectedNodesForRelation.push(nodeId);
-        node.classList.add('node-selected');
+      selectedNodesForRelation.push(nodeId);
+      node.classList.add('node-selected');
     }
     if (selectedNodesForRelation.length === 2) {
-        const [from, to] = selectedNodesForRelation;
-        addRelation(from, to);
-        clearSelection();
-        // 再描画完了後にハイライトを実行
-        reRenderModel().then(() => {
-            highlightNewRelation(from, to);
-        });
+      const [from, to] = selectedNodesForRelation;
+      const relationAdded = addRelation(from, to);
+      clearSelection();
+      // 再描画完了後、新規追加された場合のみハイライトを実行
+      reRenderModel().then(() => {
+        if (relationAdded) {
+          highlightNewRelation(from, to);
+        }
+      });
     }
 }
+  
 
 function addNewElement() {
     if (!logicModelData) {

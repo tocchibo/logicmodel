@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ロジックモデル描画・編集</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Viz.js CDN -->
   <script src="https://unpkg.com/viz.js"></script>
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
 </head>
@@ -28,18 +29,24 @@
     <div class="toolbar-group download-group">
       <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
       <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
-      <button onclick="outputCommands()" title="コマンドとしてコピー">コマンドコピー</button>
     </div>
   </div>
 
   <div class="editing-menu">
     <button id="addElementButton" title="新しい要素を追加">要素追加</button>
-    <button onclick="undoLastAction()" title="直前の作業を元に戻す">元に戻す</button>
+    <button id="undoButton" onclick="undoLastAction()" title="直前の作業を元に戻す">元に戻す</button>
     <button id="helpButton" title="編集ヘルプの表示">ヘルプ</button>
-    <span id="copySuccess" class="copy-success">コピー成功</span>
   </div>
   
   <div id="output"></div>
+  
+  <!-- 修正指示入力フォーム（ロジックモデル描画後に表示） -->
+  <div id="correctionForm" style="display:none;">
+    <textarea id="correctionInstructions" placeholder="ここに修正指示を記載してください" rows="3"></textarea>
+    <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
+    <span id="copySuccess" class="copy-success">コピーしました</span>
+  </div>
+  
   <canvas id="tempCanvas"></canvas>
   <div id="editPanel" class="edit-panel" style="display:none;"></div>
 

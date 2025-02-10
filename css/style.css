@@ -19,7 +19,7 @@ textarea#commands {
   font-size: 14px;
 }
 
-/* 一般のツールバー */
+/* ツールバー全体 */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -47,10 +47,10 @@ textarea#commands {
   min-width: 80px;
 }
 
-/* ダウンロードグループ（必要に応じて追加スタイルを設定） */
+/* ダウンロードグループ */
 .download-group { }
 
-/* 編集メニュー（要素追加、元に戻す、ヘルプ）のスタイル */
+/* 編集メニュー（要素追加、元に戻す、ヘルプ） */
 .editing-menu {
   display: flex;
   gap: 5px;
@@ -68,11 +68,12 @@ textarea#commands {
   cursor: pointer;
 }
 
-/* コピー成功メッセージ */
+/* コピー完了確認メッセージ */
 .copy-success {
   color: green;
   display: none;
   margin-left: 5px;
+  font-size: 14px;
 }
 
 /* 出力領域 */
@@ -85,6 +86,30 @@ textarea#commands {
   border-radius: 4px;
   padding: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 修正指示入力フォーム */
+#correctionForm {
+  margin-top: 10px;
+}
+
+#correctionForm textarea {
+  width: 100%;
+  padding: 6px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+#correctionForm button {
+  margin-top: 5px;
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
 }
 
 /* 非表示のキャンバス */

@@ -5,50 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ロジックモデル描画・編集</title>
   <link rel="stylesheet" href="css/style.css">
-  <!-- Viz.js CDN -->
   <script src="https://unpkg.com/viz.js"></script>
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
 </head>
 <body>
-  <header>
-    <h1>ロジックモデル描画・編集ツール</h1>
-    <p>チャットボットの回答を下のテキストエリアに貼り付けて、ロジックモデルを作成・編集できます。</p>
-  </header>
-
-  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="10" oninput="processCommands()"></textarea>
+  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5" oninput="processCommands()"></textarea>
   
-  <div class="controls">
-    <div>
-      <label for="splineType">線のスタイル:</label>
-      <select id="splineType" onchange="reRenderModel()">
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <select id="splineType" onchange="reRenderModel()" title="線のスタイル">
         <option value="line">直線</option>
         <option value="spline">曲線</option>
       </select>
-    </div>
-    <div>
-      <label for="edgeType">エッジのスタイル:</label>
-      <select id="edgeType" onchange="reRenderModel()">
+      <select id="edgeType" onchange="reRenderModel()" title="エッジのスタイル">
         <option value="line">線</option>
         <option value="arrow">矢印</option>
       </select>
     </div>
-    <div>
-      <button onclick="clearAll()">クリア</button>
-      <button id="downloadPngButton" onclick="downloadPNG()">PNGとしてダウンロード</button>
-      <button id="downloadSvgButton" onclick="downloadSVG()">SVGとしてダウンロード</button>
+    <div class="toolbar-group">
+      <button onclick="clearCommands()" title="コマンド欄をクリア">クリア</button>
     </div>
-    <div>
-      <button id="addElementButton">要素の追加</button>
-      <button id="copyCommandsButton" onclick="outputCommands()">コマンド出力</button>
-      <button id="helpButton">編集ヘルプ</button>
-      <span id="copySuccess" class="copy-success">✓ コピーしました</span>
+    <div class="toolbar-group download-group">
+      <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
+      <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
+      <button onclick="outputCommands()" title="コマンドとしてコピー">コマンドコピー</button>
     </div>
+  </div>
+
+  <div class="editing-menu">
+    <button id="addElementButton" title="新しい要素を追加">要素追加</button>
+    <button onclick="undoLastAction()" title="直前の作業を元に戻す">元に戻す</button>
+    <button id="helpButton" title="編集ヘルプの表示">ヘルプ</button>
+    <span id="copySuccess" class="copy-success">コピー成功</span>
   </div>
   
   <div id="output"></div>
   <canvas id="tempCanvas"></canvas>
-
-  <!-- 編集用のポップアップパネル -->
   <div id="editPanel" class="edit-panel" style="display:none;"></div>
 
   <script src="js/downloads.js"></script>

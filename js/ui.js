@@ -1,10 +1,5 @@
 /* js/ui.js */
 
-let selectedNodesForRelation = []; // 関係追加のために ctrl＋クリックで選択した要素
-window.currentEditingId = null;      // 現在編集中の要素ID（elementの場合）
-window.currentEditingType = null;    // "element" または "edge"
-window.currentEditingEdge = null;    // { from, to }（edgeの場合）
-
 // SVG描画後に各ノード・エッジにイベントを設定
 function attachSvgEventHandlers() {
     const svg = document.querySelector('#output svg');
@@ -14,7 +9,6 @@ function attachSvgEventHandlers() {
     const nodes = svg.querySelectorAll('g.node');
     nodes.forEach(node => {
         node.style.cursor = "pointer";
-        // マウスオーバーでハイライト
         node.addEventListener('mouseover', function() {
             node.classList.add('node-hover');
         });
@@ -23,13 +17,10 @@ function attachSvgEventHandlers() {
         });
         node.addEventListener('click', function(e) {
             e.stopPropagation();
-            // 多くの場合、ノード内に <title> 要素があり、そこに id が入っている
             const nodeId = node.querySelector('title').textContent.trim();
             if (e.ctrlKey) {
-                // ctrl＋クリックなら関係追加用の選択
                 handleNodeRelationSelection(node, nodeId);
             } else {
-                // 通常クリックなら編集パネルを表示
                 window.currentEditingType = "element";
                 window.currentEditingId = nodeId;
                 showEditPanelForElement(node, nodeId, e);
@@ -49,7 +40,6 @@ function attachSvgEventHandlers() {
         });
         edge.addEventListener('click', function(e) {
             e.stopPropagation();
-            // エッジ内の <title> から "from -> to" の情報を取得
             const edgeTitle = edge.querySelector('title');
             if (edgeTitle) {
                 const edgeId = edgeTitle.textContent.trim();
@@ -63,7 +53,6 @@ function attachSvgEventHandlers() {
         });
     });
     
-    // SVGの空白部分をクリックしたときは選択解除・パネル非表示
     svg.addEventListener('click', function(e) {
         clearSelection();
         hideEditPanel();
@@ -72,7 +61,6 @@ function attachSvgEventHandlers() {
 
 function handleNodeRelationSelection(node, nodeId) {
     if (selectedNodesForRelation.includes(nodeId)) {
-        // 既に選択済みなら解除
         selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
         node.classList.remove('node-selected');
     } else {
@@ -90,6 +78,7 @@ function handleNodeRelationSelection(node, nodeId) {
 function addRelation(from, to) {
     const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
     if (!exists) {
+        saveState();
         logicModelData.relations.push({ from, to });
     }
 }
@@ -136,6 +125,7 @@ function applyElementEdit(nodeId) {
     const newLabel = document.getElementById('editLabel').value;
     const newCategory = document.getElementById('editCategory').value;
     if (logicModelData.elements[nodeId]) {
+        saveState();
         logicModelData.elements[nodeId].label = newLabel;
         logicModelData.elements[nodeId].category = newCategory;
     }
@@ -144,8 +134,11 @@ function applyElementEdit(nodeId) {
 }
 
 function deleteElement(nodeId) {
-    delete logicModelData.elements[nodeId];
-    logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
+    if (logicModelData.elements[nodeId]) {
+        saveState();
+        delete logicModelData.elements[nodeId];
+        logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
+    }
     hideEditPanel();
     reRenderModel();
 }
@@ -165,6 +158,7 @@ function showEditPanelForEdge(edgeElement, edgeData, event) {
 }
 
 function deleteEdge(from, to) {
+    saveState();
     logicModelData.relations = logicModelData.relations.filter(rel => !(rel.from === from && rel.to === to));
     hideEditPanel();
     reRenderModel();
@@ -178,11 +172,8 @@ function hideEditPanel() {
     window.currentEditingType = null;
 }
 
-// 「要素の追加」ボタンのハンドラ（修正済み）
 document.getElementById('addElementButton').addEventListener('click', function(e) {
-    // クリック時のイベントのバブリングを止めることで、グローバルなクリックイベントに引っかからないようにする
     e.stopPropagation();
-    
     const panel = document.getElementById('editPanel');
     panel.style.left = e.clientX + "px";
     panel.style.top = e.clientY + "px";
@@ -207,16 +198,14 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     panel.style.display = "block";
 });
 
-
 function addNewElement() {
-    // logicModelData が null なら初期化する
     if (!logicModelData) {
         logicModelData = { title: "", elements: {}, relations: [] };
     }
-    
     const label = document.getElementById('newElementLabel').value.trim();
     const category = document.getElementById('newElementCategory').value;
     if (!label) return;
+    saveState();
     const id = category + elementCounters[category];
     elementCounters[category]++;
     logicModelData.elements[id] = { id, label, category };
@@ -224,8 +213,6 @@ function addNewElement() {
     reRenderModel();
 }
 
-
-// ページ全体のクリックイベント：編集パネル以外の場所をクリックしたら選択解除
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#editPanel')) {
     clearSelection();
@@ -233,26 +220,22 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// 編集ヘルプボタンのイベントハンドラ
 document.getElementById('helpButton').addEventListener('click', function(e) {
-    // クリック時にグローバルなクリックイベントへ伝播しないようにする
     e.stopPropagation();
-    
-    // editPanel を表示する
     const panel = document.getElementById('editPanel');
     panel.style.left = e.clientX + "px";
     panel.style.top = e.clientY + "px";
     panel.innerHTML = `
        <div>
-         <h3>編集方法のヘルプ</h3>
-         <p>・「要素の追加」ボタンをクリックすると、新しい要素を追加できます。</p>
-         <p>・既存の要素をクリックすると、編集または削除が可能なポップアップが表示されます。</p>
-         <p>・Ctrlキーを押しながら2つの要素をクリックすると、その間に関係を追加できます。</p>
-         <p>・エッジ（関係）をクリックすると、関係の削除が可能です。</p>
-         <p>・ページ内の何もないところをクリックすると、選択状態が解除されます。</p>
+         <h3>編集ヘルプ</h3>
+         <p>・「要素追加」ボタンで新しい要素を追加できます。</p>
+         <p>・要素をクリックすると、編集・削除パネルが表示されます。</p>
+         <p>・Ctrl＋クリックで要素同士の関係を追加できます。</p>
+         <p>・エッジをクリックすると、その関係の削除が可能です。</p>
+         <p>・「元に戻す」ボタンで直前の作業を元に戻します。</p>
+         <p>・右上のボタン群から、PNG/SVGダウンロードやコマンドのコピーができます。</p>
          <button onclick="hideEditPanel()">閉じる</button>
        </div>
     `;
     panel.style.display = "block";
 });
-

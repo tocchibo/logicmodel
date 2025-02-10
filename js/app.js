@@ -11,6 +11,16 @@ let elementCounters = {
     impact: 1
 };
 
+// Undo用スタック
+let undoStack = [];
+
+function saveState() {
+  // 深いコピーで現在の状態を保存
+  if (logicModelData) {
+    undoStack.push(JSON.parse(JSON.stringify(logicModelData)));
+  }
+}
+
 async function processCommands() {
     const currentTime = Date.now();
     if (currentTime - lastProcessTime < DEBOUNCE_TIME) {
@@ -27,6 +37,8 @@ async function processCommands() {
     logicModelData = parseCommands(commands);
     // 既存要素からカウンターを更新
     updateElementCounters();
+    // クリア時にはUndoスタックもリセット
+    undoStack = [];
     await renderLogicModelFromJSON(logicModelData);
 }
 
@@ -42,19 +54,27 @@ function updateElementCounters() {
     }
 }
 
-function clearAll() {
+function clearCommands() {
   document.getElementById('commands').value = '';
   document.getElementById('output').innerHTML = '';
-  // 空のモデルに初期化
   logicModelData = { title: "", elements: {}, relations: [] };
+  undoStack = [];
 }
-
 
 // splineType や edgeType の変更時に再描画
 async function reRenderModel() {
     if (logicModelData) {
         await renderLogicModelFromJSON(logicModelData);
     }
+}
+
+function undoLastAction() {
+  if (undoStack.length > 0) {
+    logicModelData = undoStack.pop();
+    reRenderModel();
+  } else {
+    alert("これ以上戻せません");
+  }
 }
 
 // Global delete キーイベント（編集中の対象を削除）

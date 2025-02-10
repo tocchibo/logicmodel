@@ -1,7 +1,7 @@
 /* js/app.js */
 let lastProcessTime = 0;
 const DEBOUNCE_TIME = 300;
-let logicModelData = null;
+let logicModelData = null;  // 内部的に保持するロジックモデル。空の場合は null とする
 let elementCounters = {
   input: 1,
   activity: 1,
@@ -13,6 +13,19 @@ let elementCounters = {
 let undoStack = [];
 let redoStack = [];
 let isEdited = false;
+
+/**
+ * 保存ボタンの状態を更新する
+ * ・内部にロジックモデルが保持されていなければ disabled にする
+ */
+function updateSaveButtonState() {
+  const saveBtn = document.getElementById("saveButton");
+  if (!logicModelData) {
+    saveBtn.disabled = true;
+  } else {
+    saveBtn.disabled = false;
+  }
+}
 
 function updateUndoRedoButtons() {
   const undoBtn = document.getElementById("undoButton");
@@ -42,11 +55,15 @@ async function processCommands() {
   document.getElementById("copySuccess").style.display = "none";
   document.getElementById("correctionInstructions").value = "";
 
+  // コマンド入力エリアが空欄の場合、描画・修正フォームなどは非表示にし、
+  // 内部のロジックモデルもクリア（null）とし、保存ボタンを disabled にする
   if (commands.trim() === '') {
     document.getElementById('output').innerHTML = '';
     document.getElementById("correctionForm").style.display = "none";
     if (editingMenu) editingMenu.style.display = 'none';
     if (outputContainer) outputContainer.style.display = 'none';
+    logicModelData = null;
+    updateSaveButtonState();
     return;
   } else {
     if (editingMenu) editingMenu.style.display = 'flex';
@@ -59,9 +76,9 @@ async function processCommands() {
   undoStack = [];
   redoStack = [];
   updateUndoRedoButtons();
+  updateSaveButtonState();
   await renderLogicModelFromJSON(logicModelData);
 }
-
 
 function updateElementCounters() {
   elementCounters = { input: 1, activity: 1, output: 1, outcome: 1, impact: 1 };
@@ -84,7 +101,9 @@ function clearCommands() {
   const outputContainer = document.getElementById('outputContainer');
   if (editingMenu) editingMenu.style.display = 'none';
   if (outputContainer) outputContainer.style.display = 'none';
-  logicModelData = { title: "", elements: {}, relations: [] };
+  // 内部のロジックモデルをクリア
+  logicModelData = null;
+  updateSaveButtonState();
   undoStack = [];
   redoStack = [];
   isEdited = false;
@@ -97,6 +116,7 @@ function undoLastAction() {
     logicModelData = undoStack.pop();
     updateUndoRedoButtons();
     reRenderModel();
+    updateSaveButtonState();
   }
 }
 
@@ -106,6 +126,7 @@ function redoLastAction() {
     logicModelData = redoStack.pop();
     updateUndoRedoButtons();
     reRenderModel();
+    updateSaveButtonState();
   }
 }
 
@@ -147,6 +168,13 @@ document.addEventListener('DOMContentLoaded', function(){
   if (correctionTextarea) {
     correctionTextarea.addEventListener('input', updateCopyCorrectionButton);
   }
+  
+  // 保存・読み込みボタンのイベントリスナーを登録
+  document.getElementById("saveButton").addEventListener("click", saveLogicModel);
+  document.getElementById("loadButton").addEventListener("click", loadLogicModel);
+  
+  // 初期状態では内部にモデルがないので、保存ボタンを disabled にする
+  updateSaveButtonState();
 });
 
 document.addEventListener('keydown', function(e) {
@@ -164,3 +192,71 @@ document.addEventListener('keydown', function(e) {
     redoLastAction();
   }
 });
+
+/* ---------- 新規機能：保存／読込機能 ---------- */
+
+/**
+ * 保存機能
+ * 現在のロジックモデル（logicModelData）を JSON 形式でダウンロードする
+ */
+function saveLogicModel() {
+  if (!logicModelData) {
+    alert("保存するロジックモデルがありません。");
+    return;
+  }
+  const jsonStr = JSON.stringify(logicModelData, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "logic_model.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * 読込機能
+ * 隠しファイル入力を起動して JSON ファイルを選択する
+ */
+function loadLogicModel() {
+  const fileInput = document.getElementById("jsonFileInput");
+  fileInput.value = "";
+  fileInput.click();
+}
+
+document.getElementById("jsonFileInput").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const loadedModel = JSON.parse(evt.target.result);
+      logicModelData = loadedModel;
+      
+      // 読み込んだロジックモデルからコマンド文字列を生成し、コマンド入力フォームに設定
+      const commandsText = generateCommandsFromModel(logicModelData);
+      document.getElementById("commands").value = commandsText;
+      
+      // 編集メニュー、描画領域、修正フォームなどを表示
+      document.querySelector(".editing-menu").style.display = "flex";
+      document.getElementById("outputContainer").style.display = "block";
+      document.getElementById("correctionForm").style.display = "block";
+      
+      updateElementCounters();
+      undoStack = [];
+      redoStack = [];
+      updateUndoRedoButtons();
+      
+      reRenderModel();
+      updateSaveButtonState();
+    } catch (error) {
+      console.error("JSONの読み込みエラー:", error);
+      alert("読み込みに失敗しました。正しい形式のファイルを選択してください。");
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* ---------- 以下、既存のUI関連のコード ---------- */
+
+// （js/ui.js 側のコードは変更せず、こちらの app.js との連携のみ）

@@ -222,7 +222,7 @@ function deleteElement(nodeId) {
 }
 
 /**
- * 関係編集パネルの表示（不要なテキストは出さず、削除・キャンセルボタンのみ）
+ * 関係編集パネルの表示（削除・キャンセルボタンのみ）
  */
 function showEditPanelForEdge(edgeElement, edgeData, event) {
   const panel = document.getElementById('editPanel');
@@ -348,7 +348,7 @@ document.addEventListener('click', function(e) {
 });
 
 /**
- * ヘルプパネルの表示
+ * ヘルプパネルの表示（編集ヘルプ）
  */
 document.getElementById('helpButton').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -450,7 +450,7 @@ function hideTooltip() {
 }
 
 /**
- * 新規追加時のハイライト
+ * 新規追加時のハイライト（関係追加用）
  */
 function highlightNewRelation(from, to) {
   const nodeFrom = document.getElementById("node_" + from);
@@ -491,24 +491,22 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+/* ---------- 新規機能：パワーポイント貼付ヘルプパネル ---------- */
 /**
  * パワーポイント貼付ヘルプパネルを画面中央に大きめで表示する
+ * ※ クリックイベントの伝播を止め、外側クリックで自動的に閉じるようにする
  */
 function showPowerpointHelpPanel(e) {
-  e.stopPropagation(); // このクリックイベントの伝播を止める
+  e.stopPropagation(); // パネル表示時のクリック伝播を防止
   const panel = document.getElementById("powerpointHelpPanel");
-
-  // 中央に配置するためのスタイル設定
-  panel.style.position = "fixed"; // 画面全体に対して固定配置
+  panel.style.position = "fixed";
   panel.style.left = "50%";
   panel.style.top = "50%";
   panel.style.transform = "translate(-50%, -50%)";
-  panel.style.width = "600px";       // 大きめの幅（必要に応じて調整）
-  panel.style.maxWidth = "90%";      // 画面幅に合わせた最大値
-  panel.style.maxHeight = "90%";     // 画面高さに合わせた最大値
-  panel.style.overflowY = "auto";    // 内容が多い場合にスクロール可能に
-
-  // ヘルプ内容のHTML（画像を含む）
+  panel.style.width = "600px";
+  panel.style.maxWidth = "90%";
+  panel.style.maxHeight = "90%";
+  panel.style.overflowY = "auto";
   panel.innerHTML = `
     <div class="edit-panel-content">
       <div class="edit-panel-section">
@@ -545,13 +543,6 @@ function showPowerpointHelpPanel(e) {
   panel.style.display = "block";
 }
 
-document.addEventListener('click', function(e) {
-  const panel = document.getElementById("powerpointHelpPanel");
-  if (panel.style.display === "block" && !panel.contains(e.target)) {
-    hidePowerpointHelpPanel();
-  }
-});
-
 /**
  * パワーポイント貼付ヘルプパネルを非表示にする
  */
@@ -559,3 +550,13 @@ function hidePowerpointHelpPanel() {
   const panel = document.getElementById("powerpointHelpPanel");
   panel.style.display = "none";
 }
+
+/**
+ * グローバルクリックで、パワーポイントヘルプパネル外をクリックした場合に自動で閉じる
+ */
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById("powerpointHelpPanel");
+  if (panel.style.display === "block" && !panel.contains(e.target)) {
+    hidePowerpointHelpPanel();
+  }
+});

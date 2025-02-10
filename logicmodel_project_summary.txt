@@ -322,6 +322,18 @@ textarea#commands {
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
 </head>
 <body>
+  <!-- 保存・読込ボタン（常に表示：コマンド入力フォーム等が非表示の場合でも利用可能） -->
+  <div id="saveLoadContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1100;">
+    <button id="saveButton" title="保存" style="background: none; border: none; cursor: pointer; font-size: 24px;">
+      💾
+    </button>
+    <button id="loadButton" title="読み込み" style="background: none; border: none; cursor: pointer; font-size: 24px;">
+      📂
+    </button>
+    <!-- 読込用隠しファイル入力 -->
+    <input type="file" id="jsonFileInput" accept="application/json" style="display: none;">
+  </div>
+
   <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5" oninput="processCommands()"></textarea>
   
   <!-- 編集メニュー：コマンドが入力されたときのみ表示 -->
@@ -335,7 +347,7 @@ textarea#commands {
   <!-- 描画領域：コマンドが入力されたときのみ表示 -->
   <div id="outputContainer" style="display:none;">
     <div id="output"></div>
-    <!-- コントロールコンテナ（描画領域の直下に表示） -->
+    <!-- コントロールコンテナ／各種コントロール -->
     <div id="controlsContainer">
       <div id="styleControls">
         <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
@@ -354,11 +366,12 @@ textarea#commands {
       <div id="downloadControls">
         <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
         <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
+        <button id="powerpointHelpButton" onclick="showPowerpointHelpPanel(event)" title="パワポ貼付ヘルプ">パワポ貼付ヘルプ</button>
       </div>
     </div>
   </div>
 
-  <!-- 修正指示フォーム：コマンドが入力されたときのみ表示 -->
+  <!-- 修正指示フォーム -->
   <div id="correctionForm" style="display:none;">
     <textarea id="correctionInstructions" placeholder="編集内容を踏まえ、引き続きチャットボットに修正を指示したい場合は、修正内容をここに記載した後、下のコピーボタンをクリックしてください" rows="5"></textarea>
     <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
@@ -370,7 +383,11 @@ textarea#commands {
   <!-- 関係追加時のヒント表示用ツールチップ -->
   <div id="relationTooltip" style="position: absolute; display: none; pointer-events: none; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; z-index: 2000;"></div>
   
+  <!-- 編集パネル -->
   <div id="editPanel" class="edit-panel" style="display:none;"></div>
+
+  <!-- パワーポイント貼付ヘルプ用パネル（画面中央に大きめ表示） -->
+  <div id="powerpointHelpPanel" class="edit-panel" style="display:none;"></div>
 
   <script src="js/downloads.js"></script>
   <script src="js/logicModel.js"></script>
@@ -388,7 +405,7 @@ textarea#commands {
 /* js/app.js */
 let lastProcessTime = 0;
 const DEBOUNCE_TIME = 300;
-let logicModelData = null;
+let logicModelData = null;  // 内部的に保持するロジックモデル。空の場合は null とする
 let elementCounters = {
   input: 1,
   activity: 1,
@@ -400,6 +417,19 @@ let elementCounters = {
 let undoStack = [];
 let redoStack = [];
 let isEdited = false;
+
+/**
+ * 保存ボタンの状態を更新する
+ * ・内部にロジックモデルが保持されていなければ disabled にする
+ */
+function updateSaveButtonState() {
+  const saveBtn = document.getElementById("saveButton");
+  if (!logicModelData) {
+    saveBtn.disabled = true;
+  } else {
+    saveBtn.disabled = false;
+  }
+}
 
 function updateUndoRedoButtons() {
   const undoBtn = document.getElementById("undoButton");
@@ -429,11 +459,15 @@ async function processCommands() {
   document.getElementById("copySuccess").style.display = "none";
   document.getElementById("correctionInstructions").value = "";
 
+  // コマンド入力エリアが空欄の場合、描画・修正フォームなどは非表示にし、
+  // 内部のロジックモデルもクリア（null）とし、保存ボタンを disabled にする
   if (commands.trim() === '') {
     document.getElementById('output').innerHTML = '';
     document.getElementById("correctionForm").style.display = "none";
     if (editingMenu) editingMenu.style.display = 'none';
     if (outputContainer) outputContainer.style.display = 'none';
+    logicModelData = null;
+    updateSaveButtonState();
     return;
   } else {
     if (editingMenu) editingMenu.style.display = 'flex';
@@ -446,9 +480,9 @@ async function processCommands() {
   undoStack = [];
   redoStack = [];
   updateUndoRedoButtons();
+  updateSaveButtonState();
   await renderLogicModelFromJSON(logicModelData);
 }
-
 
 function updateElementCounters() {
   elementCounters = { input: 1, activity: 1, output: 1, outcome: 1, impact: 1 };
@@ -471,7 +505,9 @@ function clearCommands() {
   const outputContainer = document.getElementById('outputContainer');
   if (editingMenu) editingMenu.style.display = 'none';
   if (outputContainer) outputContainer.style.display = 'none';
-  logicModelData = { title: "", elements: {}, relations: [] };
+  // 内部のロジックモデルをクリア
+  logicModelData = null;
+  updateSaveButtonState();
   undoStack = [];
   redoStack = [];
   isEdited = false;
@@ -484,6 +520,7 @@ function undoLastAction() {
     logicModelData = undoStack.pop();
     updateUndoRedoButtons();
     reRenderModel();
+    updateSaveButtonState();
   }
 }
 
@@ -493,6 +530,7 @@ function redoLastAction() {
     logicModelData = redoStack.pop();
     updateUndoRedoButtons();
     reRenderModel();
+    updateSaveButtonState();
   }
 }
 
@@ -534,6 +572,13 @@ document.addEventListener('DOMContentLoaded', function(){
   if (correctionTextarea) {
     correctionTextarea.addEventListener('input', updateCopyCorrectionButton);
   }
+  
+  // 保存・読み込みボタンのイベントリスナーを登録
+  document.getElementById("saveButton").addEventListener("click", saveLogicModel);
+  document.getElementById("loadButton").addEventListener("click", loadLogicModel);
+  
+  // 初期状態では内部にモデルがないので、保存ボタンを disabled にする
+  updateSaveButtonState();
 });
 
 document.addEventListener('keydown', function(e) {
@@ -551,6 +596,74 @@ document.addEventListener('keydown', function(e) {
     redoLastAction();
   }
 });
+
+/* ---------- 新規機能：保存／読込機能 ---------- */
+
+/**
+ * 保存機能
+ * 現在のロジックモデル（logicModelData）を JSON 形式でダウンロードする
+ */
+function saveLogicModel() {
+  if (!logicModelData) {
+    alert("保存するロジックモデルがありません。");
+    return;
+  }
+  const jsonStr = JSON.stringify(logicModelData, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "logic_model.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * 読込機能
+ * 隠しファイル入力を起動して JSON ファイルを選択する
+ */
+function loadLogicModel() {
+  const fileInput = document.getElementById("jsonFileInput");
+  fileInput.value = "";
+  fileInput.click();
+}
+
+document.getElementById("jsonFileInput").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const loadedModel = JSON.parse(evt.target.result);
+      logicModelData = loadedModel;
+      
+      // 読み込んだロジックモデルからコマンド文字列を生成し、コマンド入力フォームに設定
+      const commandsText = generateCommandsFromModel(logicModelData);
+      document.getElementById("commands").value = commandsText;
+      
+      // 編集メニュー、描画領域、修正フォームなどを表示
+      document.querySelector(".editing-menu").style.display = "flex";
+      document.getElementById("outputContainer").style.display = "block";
+      document.getElementById("correctionForm").style.display = "block";
+      
+      updateElementCounters();
+      undoStack = [];
+      redoStack = [];
+      updateUndoRedoButtons();
+      
+      reRenderModel();
+      updateSaveButtonState();
+    } catch (error) {
+      console.error("JSONの読み込みエラー:", error);
+      alert("読み込みに失敗しました。正しい形式のファイルを選択してください。");
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* ---------- 以下、既存のUI関連のコード ---------- */
+
+// （js/ui.js 側のコードは変更せず、こちらの app.js との連携のみ）
 
 ```
 
@@ -1193,7 +1306,7 @@ function deleteElement(nodeId) {
 }
 
 /**
- * 関係編集パネルの表示（不要なテキストは出さず、削除・キャンセルボタンのみ）
+ * 関係編集パネルの表示（削除・キャンセルボタンのみ）
  */
 function showEditPanelForEdge(edgeElement, edgeData, event) {
   const panel = document.getElementById('editPanel');
@@ -1319,7 +1432,7 @@ document.addEventListener('click', function(e) {
 });
 
 /**
- * ヘルプパネルの表示
+ * ヘルプパネルの表示（編集ヘルプ）
  */
 document.getElementById('helpButton').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -1421,7 +1534,7 @@ function hideTooltip() {
 }
 
 /**
- * 新規追加時のハイライト
+ * 新規追加時のハイライト（関係追加用）
  */
 function highlightNewRelation(from, to) {
   const nodeFrom = document.getElementById("node_" + from);
@@ -1459,6 +1572,76 @@ document.addEventListener('keydown', function(e) {
     window.startingNodeForRelation = null;
     clearSelection();
     hideTooltip();
+  }
+});
+
+/* ---------- 新規機能：パワーポイント貼付ヘルプパネル ---------- */
+/**
+ * パワーポイント貼付ヘルプパネルを画面中央に大きめで表示する
+ * ※ クリックイベントの伝播を止め、外側クリックで自動的に閉じるようにする
+ */
+function showPowerpointHelpPanel(e) {
+  e.stopPropagation(); // パネル表示時のクリック伝播を防止
+  const panel = document.getElementById("powerpointHelpPanel");
+  panel.style.position = "fixed";
+  panel.style.left = "50%";
+  panel.style.top = "50%";
+  panel.style.transform = "translate(-50%, -50%)";
+  panel.style.width = "600px";
+  panel.style.maxWidth = "90%";
+  panel.style.maxHeight = "90%";
+  panel.style.overflowY = "auto";
+  panel.innerHTML = `
+    <div class="edit-panel-content">
+      <div class="edit-panel-section">
+        <h3>パワポ貼付ヘルプ</h3>
+        <ol>
+          <li>
+            <strong>SVGのダウンロード</strong><br>
+            SVGダウンロードボタンをクリックして、SVGファイルをダウンロードします。
+          </li>
+          <li>
+            <strong>PowerPointへ貼り付け</strong><br>
+            ダウンロードしたSVGファイルをコピーして、PowerPoint上に貼り付けます。
+          </li>
+          <li>
+            <strong>図形に変換</strong><br>
+            貼り付けたSVG画像上で右クリックし、「図形に変換」を選択します。<br>
+            <img src="pics/zukei_ni_henkan.png" alt="図形に変換のスクリーンショット" style="max-width:100%; height:auto;">
+          </li>
+          <li>
+            <strong>グループ解除</strong><br>
+            変換後、再度右クリックして「グループ解除」を選択します。<br>
+            <img src="pics/group_kaijo.png" alt="グループ解除のスクリーンショット" style="max-width:100%; height:auto;">
+          </li>
+        </ol>
+        <p>
+          これで、書式などを編集可能な状態でPowerPointに貼り付けることができます。
+        </p>
+      </div>
+      <div class="edit-panel-buttons">
+        <button onclick="hidePowerpointHelpPanel()" class="panel-button">閉じる</button>
+      </div>
+    </div>
+  `;
+  panel.style.display = "block";
+}
+
+/**
+ * パワーポイント貼付ヘルプパネルを非表示にする
+ */
+function hidePowerpointHelpPanel() {
+  const panel = document.getElementById("powerpointHelpPanel");
+  panel.style.display = "none";
+}
+
+/**
+ * グローバルクリックで、パワーポイントヘルプパネル外をクリックした場合に自動で閉じる
+ */
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById("powerpointHelpPanel");
+  if (panel.style.display === "block" && !panel.contains(e.target)) {
+    hidePowerpointHelpPanel();
   }
 });
 

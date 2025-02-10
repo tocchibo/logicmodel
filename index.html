@@ -10,6 +10,18 @@
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
 </head>
 <body>
+  <!-- 保存・読込ボタン（常に表示：コマンド入力フォーム等が非表示の場合でも利用可能） -->
+  <div id="saveLoadContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1100;">
+    <button id="saveButton" title="保存" style="background: none; border: none; cursor: pointer; font-size: 24px;">
+      💾
+    </button>
+    <button id="loadButton" title="読み込み" style="background: none; border: none; cursor: pointer; font-size: 24px;">
+      📂
+    </button>
+    <!-- 読込用隠しファイル入力 -->
+    <input type="file" id="jsonFileInput" accept="application/json" style="display: none;">
+  </div>
+
   <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5" oninput="processCommands()"></textarea>
   
   <!-- 編集メニュー：コマンドが入力されたときのみ表示 -->
@@ -23,7 +35,7 @@
   <!-- 描画領域：コマンドが入力されたときのみ表示 -->
   <div id="outputContainer" style="display:none;">
     <div id="output"></div>
-    <!-- コントロールコンテナ（描画領域の直下に表示） -->
+    <!-- コントロールコンテナ／各種コントロール -->
     <div id="controlsContainer">
       <div id="styleControls">
         <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
@@ -44,11 +56,10 @@
         <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
         <button id="powerpointHelpButton" onclick="showPowerpointHelpPanel(event)" title="パワポ貼付ヘルプ">パワポ貼付ヘルプ</button>
       </div>
-      
     </div>
   </div>
 
-  <!-- 修正指示フォーム：コマンドが入力されたときのみ表示 -->
+  <!-- 修正指示フォーム -->
   <div id="correctionForm" style="display:none;">
     <textarea id="correctionInstructions" placeholder="編集内容を踏まえ、引き続きチャットボットに修正を指示したい場合は、修正内容をここに記載した後、下のコピーボタンをクリックしてください" rows="5"></textarea>
     <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
@@ -60,7 +71,10 @@
   <!-- 関係追加時のヒント表示用ツールチップ -->
   <div id="relationTooltip" style="position: absolute; display: none; pointer-events: none; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; z-index: 2000;"></div>
   
+  <!-- 編集パネル -->
   <div id="editPanel" class="edit-panel" style="display:none;"></div>
+
+  <!-- パワーポイント貼付ヘルプ用パネル（画面中央に大きめ表示） -->
   <div id="powerpointHelpPanel" class="edit-panel" style="display:none;"></div>
 
   <script src="js/downloads.js"></script>

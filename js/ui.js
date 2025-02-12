@@ -42,8 +42,7 @@ function attachSvgEventHandlers() {
     node.style.cursor = "pointer";
     const nodeId = node.querySelector('title').textContent.trim();
 
-    // ここを従来のmouseover/outではなく、mouseenter/leaveに変更して
-    // 上流／下流のみたどるハイライトを実現する
+    // マウスエンター／リーブで上流／下流のハイライトを実現
     node.addEventListener('mouseenter', () => {
       highlightRelatedElements(nodeId);
     });
@@ -150,7 +149,7 @@ function getDownstreamNodes(nodeId, visited = new Set()) {
 
 /**
  * ホバーされたノードを中心に、上流および下流方向の連続したノード・エッジのみをハイライトする
- * ・ホバーされたノードは塗りつぶしの変更（.node-hover）
+ * ・ホバーされたノードは塗りつぶし変更（.node-hover）
  * ・上流／下流のノードは枠のみ変更（.node-related）
  */
 function highlightRelatedElements(hoveredNodeId) {
@@ -267,7 +266,11 @@ function showEditPanelForElement(svgNode, nodeId, event) {
   positionPanel(panel, event.clientX, event.clientY);
   const element = logicModelData.elements[nodeId];
   if (!element) return;
-  const labelText = element.label.replace(/\\n/g, "\n");
+  // もしラベル内にリテラル "\n" が含まれていれば、実際の改行に変換する
+  let labelText = element.label;
+  if (labelText.indexOf('\\n') !== -1) {
+    labelText = labelText.replace(/\\n/g, "\n");
+  }
   const rows = Math.max(3, labelText.split("\n").length);
   panel.innerHTML = `
     <div class="edit-panel-content">
@@ -304,6 +307,7 @@ function applyElementEdit(nodeId) {
   const newCategory = document.getElementById('editCategory').value;
   if (logicModelData.elements[nodeId]) {
     saveState();
+    // 実際の改行をリテラル "\n" に変換して保存
     logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
     logicModelData.elements[nodeId].category = newCategory;
   }
@@ -393,7 +397,7 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     <div class="edit-panel-content">
       <div class="edit-panel-section">
         <label for="newElementLabel">ラベル</label>
-        <input type="text" id="newElementLabel" value="">
+        <textarea id="newElementLabel" rows="3"></textarea>
       </div>
       <div class="edit-panel-section">
         <label for="newElementCategory">カテゴリー</label>
@@ -431,8 +435,8 @@ function addNewElement() {
   saveState();
   const id = category + elementCounters[category];
   elementCounters[category]++;
-  // ラベル内の改行はそのまま保存（後で生成時に "\\n" に変換される）
-  logicModelData.elements[id] = { id, label: label, category };
+  // 保存時は改行をリテラル "\n" に変換する
+  logicModelData.elements[id] = { id, label: label.replace(/\r\n|\r|\n/g, '\\n'), category };
   // 最後に追加した要素のカテゴリーを保存
   window.lastAddedCategory = category;
   hideEditPanel();
@@ -606,7 +610,7 @@ document.addEventListener('keydown', function(e) {
  * ※ クリックイベントの伝播を止め、外側クリックで自動的に閉じるようにする
  */
 function showPowerpointHelpPanel(e) {
-  e.stopPropagation(); // パネル表示時のクリック伝播を防止
+  e.stopPropagation();
   const panel = document.getElementById("powerpointHelpPanel");
   panel.style.position = "fixed";
   panel.style.left = "50%";

@@ -42,12 +42,15 @@ function attachSvgEventHandlers() {
     node.style.cursor = "pointer";
     const nodeId = node.querySelector('title').textContent.trim();
 
-    if (window.isWaitingForRelationEnd && window.startingNodeForRelation === nodeId) {
-      node.classList.add("node-selected");
-    }
+    // ここを従来のmouseover/outではなく、mouseenter/leaveに変更して
+    // 上流／下流のみたどるハイライトを実現する
+    node.addEventListener('mouseenter', () => {
+      highlightRelatedElements(nodeId);
+    });
+    node.addEventListener('mouseleave', () => {
+      clearRelatedHighlights();
+    });
 
-    node.addEventListener('mouseover', () => node.classList.add('node-hover'));
-    node.addEventListener('mouseout', () => node.classList.remove('node-hover'));
     node.addEventListener('click', e => {
       e.stopPropagation();
       if (window.isWaitingForRelationEnd) {
@@ -110,6 +113,106 @@ function attachSvgEventHandlers() {
     hideEditPanel();
   });
 }
+
+/* ---------- 新規追加：上流／下流のみをたどるハイライト処理 ---------- */
+
+/**
+ * 上流方向（逆向き）の連続したノードを取得
+ */
+function getUpstreamNodes(nodeId, visited = new Set()) {
+  let upstream = new Set();
+  logicModelData.relations.forEach(rel => {
+    if (rel.to === nodeId && !visited.has(rel.from)) {
+      visited.add(rel.from);
+      upstream.add(rel.from);
+      const ancestors = getUpstreamNodes(rel.from, visited);
+      ancestors.forEach(n => upstream.add(n));
+    }
+  });
+  return upstream;
+}
+
+/**
+ * 下流方向（順方向）の連続したノードを取得
+ */
+function getDownstreamNodes(nodeId, visited = new Set()) {
+  let downstream = new Set();
+  logicModelData.relations.forEach(rel => {
+    if (rel.from === nodeId && !visited.has(rel.to)) {
+      visited.add(rel.to);
+      downstream.add(rel.to);
+      const descendants = getDownstreamNodes(rel.to, visited);
+      descendants.forEach(n => downstream.add(n));
+    }
+  });
+  return downstream;
+}
+
+/**
+ * ホバーされたノードを中心に、上流および下流方向の連続したノード・エッジのみをハイライトする
+ * ・ホバーされたノードは塗りつぶしの変更（.node-hover）
+ * ・上流／下流のノードは枠のみ変更（.node-related）
+ */
+function highlightRelatedElements(hoveredNodeId) {
+  if (!logicModelData) return;
+  
+  const upstream = getUpstreamNodes(hoveredNodeId);
+  const downstream = getDownstreamNodes(hoveredNodeId);
+  
+  // 対象ノード集合：ホバーされたノード、自身の上流・下流
+  const relatedSet = new Set([hoveredNodeId]);
+  upstream.forEach(n => relatedSet.add(n));
+  downstream.forEach(n => relatedSet.add(n));
+  
+  const svg = document.querySelector('#output svg');
+  if (!svg) return;
+  
+  // ノードのハイライト更新
+  svg.querySelectorAll('g.node').forEach(node => {
+    const id = node.querySelector('title').textContent.trim();
+    if (id === hoveredNodeId) {
+      node.classList.add('node-hover');      // ホバー中のノードは塗りつぶし変更
+      node.classList.remove('node-related');
+    } else if (relatedSet.has(id)) {
+      node.classList.add('node-related');      // 上流／下流のノードは枠のみ変更（塗りは白）
+      node.classList.remove('node-hover');
+    } else {
+      node.classList.remove('node-hover', 'node-related');
+    }
+  });
+  
+  // エッジのハイライト更新：両端が対象ノード集合内の場合のみハイライト
+  svg.querySelectorAll('g.edge').forEach(edge => {
+    const edgeIdAttr = edge.getAttribute('id');
+    if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
+      const parts = edgeIdAttr.substring(5).split('_');
+      if (parts.length >= 2) {
+        const from = parts[0];
+        const to = parts[1];
+        if (relatedSet.has(from) && relatedSet.has(to)) {
+          edge.classList.add('edge-related');
+        } else {
+          edge.classList.remove('edge-related');
+        }
+      }
+    }
+  });
+}
+
+/**
+ * すべての上流／下流ハイライトを解除する
+ */
+function clearRelatedHighlights() {
+  const svg = document.querySelector('#output svg');
+  if (!svg) return;
+  svg.querySelectorAll('g.node').forEach(node => {
+    node.classList.remove('node-hover', 'node-related');
+  });
+  svg.querySelectorAll('g.edge').forEach(edge => {
+    edge.classList.remove('edge-related');
+  });
+}
+/* ---------- ここまで上流／下流ハイライト ---------- */
 
 /**
  * Ctrl＋クリックによる複数ノード選択での関係追加
@@ -290,7 +393,7 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     <div class="edit-panel-content">
       <div class="edit-panel-section">
         <label for="newElementLabel">ラベル</label>
-        <textarea id="newElementLabel" rows="3"></textarea>
+        <input type="text" id="newElementLabel" value="">
       </div>
       <div class="edit-panel-section">
         <label for="newElementCategory">カテゴリー</label>
@@ -322,14 +425,14 @@ function addNewElement() {
   if (!logicModelData) {
     logicModelData = { title: "", elements: {}, relations: [] };
   }
-  const labelValue = document.getElementById('newElementLabel').value;
-  if (labelValue.trim() === "") return;
+  const label = document.getElementById('newElementLabel').value.trim();
   const category = document.getElementById('newElementCategory').value;
+  if (!label) return;
   saveState();
   const id = category + elementCounters[category];
   elementCounters[category]++;
   // ラベル内の改行はそのまま保存（後で生成時に "\\n" に変換される）
-  logicModelData.elements[id] = { id, label: labelValue, category };
+  logicModelData.elements[id] = { id, label: label, category };
   // 最後に追加した要素のカテゴリーを保存
   window.lastAddedCategory = category;
   hideEditPanel();

@@ -211,7 +211,7 @@ textarea#commands {
   font-size: var(--font-size-base);
 }
 
-/* ノードホバー */
+/* ノードホバー（ホバー中のノード：塗りつぶしも変更） */
 .node-hover polygon,
 .node-hover rect {
   stroke: var(--hover-stroke) !important;
@@ -279,4 +279,23 @@ textarea#commands {
   border-radius: var(--border-radius);
   font-size: 12px;
   z-index: 2000;
+}
+
+/* 以下、今回の新規追加部分：上流／下流のハイライト */
+/* ・ホバー中のノードは塗りつぶし色も変更（.node-hover は上記と同じ） */
+/* ・上流／下流ノードは枠のみ変更、塗りつぶしは白 */
+.node-related polygon,
+.node-related rect {
+  stroke: var(--hover-stroke) !important;
+  stroke-width: var(--hover-stroke-width) !important;
+  fill: white !important;
+}
+.node-related text {
+  fill: black !important;
+}
+
+/* 上流／下流エッジのハイライト */
+.edge-related path {
+  stroke: var(--edge-hover-stroke) !important;
+  stroke-width: var(--edge-hover-width) !important;
 }

@@ -290,7 +290,7 @@ document.getElementById('addElementButton').addEventListener('click', function(e
     <div class="edit-panel-content">
       <div class="edit-panel-section">
         <label for="newElementLabel">ラベル</label>
-        <input type="text" id="newElementLabel" value="">
+        <textarea id="newElementLabel" rows="3"></textarea>
       </div>
       <div class="edit-panel-section">
         <label for="newElementCategory">カテゴリー</label>
@@ -308,6 +308,9 @@ document.getElementById('addElementButton').addEventListener('click', function(e
       </div>
     </div>
   `;
+  // デフォルトのカテゴリーは直前に追加した要素のカテゴリー（なければ "input"）
+  const lastCategory = window.lastAddedCategory || "input";
+  document.getElementById("newElementCategory").value = lastCategory;
   panel.style.display = "block";
   document.getElementById("newElementLabel").focus();
 });
@@ -319,13 +322,16 @@ function addNewElement() {
   if (!logicModelData) {
     logicModelData = { title: "", elements: {}, relations: [] };
   }
-  const label = document.getElementById('newElementLabel').value.trim();
+  const labelValue = document.getElementById('newElementLabel').value;
+  if (labelValue.trim() === "") return;
   const category = document.getElementById('newElementCategory').value;
-  if (!label) return;
   saveState();
   const id = category + elementCounters[category];
   elementCounters[category]++;
-  logicModelData.elements[id] = { id, label, category };
+  // ラベル内の改行はそのまま保存（後で生成時に "\\n" に変換される）
+  logicModelData.elements[id] = { id, label: labelValue, category };
+  // 最後に追加した要素のカテゴリーを保存
+  window.lastAddedCategory = category;
   hideEditPanel();
   reRenderModel().then(() => {
     highlightNewNode(id);

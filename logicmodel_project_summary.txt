@@ -317,30 +317,35 @@ textarea#commands {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ロジックモデル描画・編集</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Viz.js CDN -->
   <script src="https://unpkg.com/viz.js"></script>
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
 </head>
 <body>
-  <!-- 保存・読込ボタン（常に表示：コマンド入力フォーム等が非表示の場合でも利用可能） -->
-  <div id="saveLoadContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1100;">
-    <button id="saveButton" title="保存" style="background: none; border: none; cursor: pointer; font-size: 24px;">
-      💾
-    </button>
-    <button id="loadButton" title="読み込み" style="background: none; border: none; cursor: pointer; font-size: 24px;">
-      📂
-    </button>
-    <!-- 読込用隠しファイル入力 -->
-    <input type="file" id="jsonFileInput" accept="application/json" style="display: none;">
-  </div>
+<!-- 保存・読込ボタン（常に表示） -->
+<div id="saveLoadContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1100;">
+  <button id="saveButton" title="保存" style="background: none; border: none; cursor: pointer; font-size: 24px;">
+    <i class="fa-solid fa-floppy-disk"></i>
+  </button>
+  <button id="loadButton" title="読み込み" style="background: none; border: none; cursor: pointer; font-size: 24px;">
+    <i class="fa-solid fa-folder-open"></i>
+  </button>
+  <!-- 読込用隠しファイル入力 -->
+  <input type="file" id="jsonFileInput" accept="application/json" style="display: none;">
+</div>
 
   <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5" oninput="processCommands()"></textarea>
   
   <!-- 編集メニュー：コマンドが入力されたときのみ表示 -->
   <div class="editing-menu" style="display:none;">
     <button id="addElementButton" title="新しい要素を追加">要素追加</button>
-    <button id="undoButton" onclick="undoLastAction()" title="元に戻す" disabled>&#x21B6;</button>
-    <button id="redoButton" onclick="redoLastAction()" title="やり直す" disabled>&#x21B7;</button>
+    <button id="undoButton" onclick="undoLastAction()" title="元に戻す" disabled>
+      <i class="fa-solid fa-undo"></i>
+    </button>
+    <button id="redoButton" onclick="redoLastAction()" title="やり直す" disabled>
+      <i class="fa-solid fa-redo"></i>
+    </button>
     <button id="helpButton" title="編集ヘルプの表示">編集ヘルプ</button>
   </div>
 

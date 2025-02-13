@@ -42,7 +42,7 @@ function attachSvgEventHandlers() {
     node.style.cursor = "pointer";
     const nodeId = node.querySelector('title').textContent.trim();
 
-    // マウスエンター／リーブで上流／下流のハイライトを実現
+    // マウスエンター／リーブで、上下流の連続パスのみハイライト
     node.addEventListener('mouseenter', () => {
       highlightRelatedElements(nodeId);
     });
@@ -113,55 +113,76 @@ function attachSvgEventHandlers() {
   });
 }
 
-/* ---------- 新規追加：上流／下流のみをたどるハイライト処理 ---------- */
+/* ---------- DFSによる上下流探索（各経路ごとに探索） ---------- */
 
 /**
- * 上流方向（逆向き）の連続したノードを取得
+ * 上流方向（逆向き）の全単純パスを探索する関数
+ * ・currentPath は現在の経路に含まれるノードの集合（再帰毎にコピー）
+ * ・返り値は { nodes, edges } で、edges は "from->to" 形式の文字列集合
  */
-function getUpstreamNodes(nodeId, visited = new Set()) {
-  let upstream = new Set();
-  logicModelData.relations.forEach(rel => {
-    if (rel.to === nodeId && !visited.has(rel.from)) {
-      visited.add(rel.from);
-      upstream.add(rel.from);
-      const ancestors = getUpstreamNodes(rel.from, visited);
-      ancestors.forEach(n => upstream.add(n));
+function getUpstreamAll(nodeId, currentPath = new Set()) {
+  let nodes = new Set();
+  let edges = new Set();
+  for (let rel of logicModelData.relations) {
+    if (rel.to === nodeId) {
+      if (!currentPath.has(rel.from)) {
+        edges.add(rel.from + "->" + rel.to);
+        nodes.add(rel.from);
+        let newPath = new Set(currentPath);
+        newPath.add(rel.from);
+        let result = getUpstreamAll(rel.from, newPath);
+        result.nodes.forEach(n => nodes.add(n));
+        result.edges.forEach(e => edges.add(e));
+      }
     }
-  });
-  return upstream;
+  }
+  return { nodes, edges };
 }
 
 /**
- * 下流方向（順方向）の連続したノードを取得
+ * 下流方向（順方向）の全単純パスを探索する関数
+ * ・currentPath は現在の経路に含まれるノードの集合（再帰毎にコピー）
+ * ・返り値は { nodes, edges } で、edges は "from->to" 形式の文字列集合
  */
-function getDownstreamNodes(nodeId, visited = new Set()) {
-  let downstream = new Set();
-  logicModelData.relations.forEach(rel => {
-    if (rel.from === nodeId && !visited.has(rel.to)) {
-      visited.add(rel.to);
-      downstream.add(rel.to);
-      const descendants = getDownstreamNodes(rel.to, visited);
-      descendants.forEach(n => downstream.add(n));
+function getDownstreamAll(nodeId, currentPath = new Set()) {
+  let nodes = new Set();
+  let edges = new Set();
+  for (let rel of logicModelData.relations) {
+    if (rel.from === nodeId) {
+      if (!currentPath.has(rel.to)) {
+        edges.add(rel.from + "->" + rel.to);
+        nodes.add(rel.to);
+        let newPath = new Set(currentPath);
+        newPath.add(rel.to);
+        let result = getDownstreamAll(rel.to, newPath);
+        result.nodes.forEach(n => nodes.add(n));
+        result.edges.forEach(e => edges.add(e));
+      }
     }
-  });
-  return downstream;
+  }
+  return { nodes, edges };
 }
 
 /**
- * ホバーされたノードを中心に、上流および下流方向の連続したノード・エッジのみをハイライトする
- * ・ホバーされたノードは塗りつぶし変更（.node-hover）
- * ・上流／下流のノードは枠のみ変更（.node-related）
+ * ホバーされたノードを中心に、上下流方向の単純パス上のノードとエッジのみをハイライトする
+ * - ホバーされたノードは塗りつぶし変更 (.node-hover)
+ * - 上下流のノードは枠のみ変更 (.node-related)
+ * - エッジは DFS で通ったもの（すべての経路の union）に含まれるもののみハイライト (.edge-related)
  */
 function highlightRelatedElements(hoveredNodeId) {
   if (!logicModelData) return;
   
-  const upstream = getUpstreamNodes(hoveredNodeId);
-  const downstream = getDownstreamNodes(hoveredNodeId);
+  // 上流・下流をそれぞれ探索（各経路を全て考慮）
+  const upstreamRes = getUpstreamAll(hoveredNodeId);
+  const downstreamRes = getDownstreamAll(hoveredNodeId);
   
-  // 対象ノード集合：ホバーされたノード、自身の上流・下流
-  const relatedSet = new Set([hoveredNodeId]);
-  upstream.forEach(n => relatedSet.add(n));
-  downstream.forEach(n => relatedSet.add(n));
+  // 関連ノード集合：ホバー対象＋上流・下流のノード
+  const relatedNodes = new Set([hoveredNodeId]);
+  upstreamRes.nodes.forEach(n => relatedNodes.add(n));
+  downstreamRes.nodes.forEach(n => relatedNodes.add(n));
+  
+  // DFSで通ったエッジ集合（"from->to" 形式）の union
+  const dfsEdges = new Set([...upstreamRes.edges, ...downstreamRes.edges]);
   
   const svg = document.querySelector('#output svg');
   if (!svg) return;
@@ -170,17 +191,17 @@ function highlightRelatedElements(hoveredNodeId) {
   svg.querySelectorAll('g.node').forEach(node => {
     const id = node.querySelector('title').textContent.trim();
     if (id === hoveredNodeId) {
-      node.classList.add('node-hover');      // ホバー中のノードは塗りつぶし変更
+      node.classList.add('node-hover');
       node.classList.remove('node-related');
-    } else if (relatedSet.has(id)) {
-      node.classList.add('node-related');      // 上流／下流のノードは枠のみ変更（塗りは白）
+    } else if (relatedNodes.has(id)) {
+      node.classList.add('node-related');
       node.classList.remove('node-hover');
     } else {
       node.classList.remove('node-hover', 'node-related');
     }
   });
   
-  // エッジのハイライト更新：両端が対象ノード集合内の場合のみハイライト
+  // エッジのハイライト更新：DFSで通ったエッジのみ対象
   svg.querySelectorAll('g.edge').forEach(edge => {
     const edgeIdAttr = edge.getAttribute('id');
     if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
@@ -188,7 +209,8 @@ function highlightRelatedElements(hoveredNodeId) {
       if (parts.length >= 2) {
         const from = parts[0];
         const to = parts[1];
-        if (relatedSet.has(from) && relatedSet.has(to)) {
+        const key = from + "->" + to;
+        if (dfsEdges.has(key)) {
           edge.classList.add('edge-related');
         } else {
           edge.classList.remove('edge-related');
@@ -199,7 +221,7 @@ function highlightRelatedElements(hoveredNodeId) {
 }
 
 /**
- * すべての上流／下流ハイライトを解除する
+ * すべての上下流ハイライトを解除する
  */
 function clearRelatedHighlights() {
   const svg = document.querySelector('#output svg');
@@ -211,7 +233,8 @@ function clearRelatedHighlights() {
     edge.classList.remove('edge-related');
   });
 }
-/* ---------- ここまで上流／下流ハイライト ---------- */
+
+/* ---------- ここまで DFSによる上下流探索 ---------- */
 
 /**
  * Ctrl＋クリックによる複数ノード選択での関係追加
@@ -266,11 +289,7 @@ function showEditPanelForElement(svgNode, nodeId, event) {
   positionPanel(panel, event.clientX, event.clientY);
   const element = logicModelData.elements[nodeId];
   if (!element) return;
-  // もしラベル内にリテラル "\n" が含まれていれば、実際の改行に変換する
-  let labelText = element.label;
-  if (labelText.indexOf('\\n') !== -1) {
-    labelText = labelText.replace(/\\n/g, "\n");
-  }
+  const labelText = element.label.replace(/\\n/g, "\n");
   const rows = Math.max(3, labelText.split("\n").length);
   panel.innerHTML = `
     <div class="edit-panel-content">
@@ -307,7 +326,6 @@ function applyElementEdit(nodeId) {
   const newCategory = document.getElementById('editCategory').value;
   if (logicModelData.elements[nodeId]) {
     saveState();
-    // 実際の改行をリテラル "\n" に変換して保存
     logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
     logicModelData.elements[nodeId].category = newCategory;
   }
@@ -387,7 +405,8 @@ function startRelationFrom(nodeId) {
 }
 
 /**
- * 「要素追加」パネルの表示
+ * 「要素追加」パネルの表示  
+ * ※ ラベル入力エリアは <textarea> に変更して改行が使えるようにしています
  */
 document.getElementById('addElementButton').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -435,8 +454,8 @@ function addNewElement() {
   saveState();
   const id = category + elementCounters[category];
   elementCounters[category]++;
-  // 保存時は改行をリテラル "\n" に変換する
-  logicModelData.elements[id] = { id, label: label.replace(/\r\n|\r|\n/g, '\\n'), category };
+  // ラベル内の改行はそのまま保存（後で生成時に "\\n" に変換される）
+  logicModelData.elements[id] = { id, label: label, category };
   // 最後に追加した要素のカテゴリーを保存
   window.lastAddedCategory = category;
   hideEditPanel();
@@ -610,7 +629,7 @@ document.addEventListener('keydown', function(e) {
  * ※ クリックイベントの伝播を止め、外側クリックで自動的に閉じるようにする
  */
 function showPowerpointHelpPanel(e) {
-  e.stopPropagation();
+  e.stopPropagation(); // パネル表示時のクリック伝播を防止
   const panel = document.getElementById("powerpointHelpPanel");
   panel.style.position = "fixed";
   panel.style.left = "50%";

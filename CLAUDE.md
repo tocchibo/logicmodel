@@ -7,9 +7,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **技術スタック**: HTML5, CSS3, Vanilla JavaScript, Viz.js, Font Awesome
 **特徴**: フレームワークレス、シンプルな構成、個人利用前提
+**開発環境**: ローカルサーバー（Python http.server）、任意のテキストエディタ
 
 ## アプリケーションの起動方法
+
+### 方法1: 直接起動
 index.htmlをブラウザで開くだけで動作する。ビルドプロセスは不要。
+
+### 方法2: ローカルサーバー経由（推奨）
+```bash
+# Windowsの場合
+start_server.bat
+
+# macOS/Linuxの場合  
+python -m http.server 8000
+```
+その後、ブラウザで http://localhost:8000/index.html にアクセス。
+
+**注意**: ファイル読み込み機能を使用する場合は、セキュリティ制限によりローカルサーバー経由での起動が必要。
 
 ## アーキテクチャと重要な設計方針
 
@@ -63,6 +78,11 @@ index.htmlをブラウザで開くだけで動作する。ビルドプロセス�
 - **js/utils.js**: 共通ユーティリティ（コピー、DOM操作、ファイルダウンロード等）
 - **js/app.js**: 状態管理とメインロジック（AppStateオブジェクト中心）
 - **js/ui.js**: UI操作とイベントハンドリング（責務分離済み）
+- **js/logicModel.js**: コマンド解析とGraphviz DOT形式変換
+- **js/commandsGenerator.js**: 内部モデルからコマンド文字列への逆変換
+- **js/downloads.js**: SVG/PNGエクスポート機能
+- **start_server.bat**: 開発用ローカルサーバー起動スクリプト
+- **CLAUDE.md**: 開発ガイドライン（このファイル）
 
 ### 状態管理のベストプラクティス
 ```javascript
@@ -90,3 +110,21 @@ copyToClipboard(text, onSuccess, onError);
 - 新しいDOM操作はutils.jsの関数を活用
 - CSSクラス操作はconstants.jsの定数を使用
 - 100行を超える関数は責務ごとに分割を検討
+- 新しい定数はconstants.jsに追加
+- ファイル読み込み/保存機能のテストはローカルサーバー環境で実施
+
+## トラブルシューティング
+
+### ファイル読み込みができない場合
+1. ブラウザのセキュリティ制限により、file://プロトコルでは制限される
+2. start_server.batを使用してローカルサーバー経由でアクセス
+3. または、ブラウザで「--allow-file-access-from-files」フラグを有効化
+
+### 日本語が文字化けする場合
+1. HTMLファイルのエンコーディングがUTF-8になっているか確認
+2. サーバーのContent-TypeにcharsetがUTF-8で設定されているか確認
+
+### JavaScriptエラーが発生する場合
+1. ブラウザの開発者ツールでコンソールエラーを確認
+2. 新規追加したファイルがHTMLで正しく読み込まれているか確認
+3. constants.js、utils.jsの読み込み順序が正しいか確認

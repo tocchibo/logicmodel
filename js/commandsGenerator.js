@@ -153,32 +153,22 @@ function generateCommandsFromModel(model) {
    * 内部の logicModelData からコマンド文字列を生成し、クリップボードへコピーします。
    */
   function outputCommands() {
-    if (!logicModelData) {
-      alert("ロジックモデルのデータが存在しません。");
+    if (!AppState.logicModelData) {
+      showError(ERROR_MESSAGES.NO_MODEL_DATA);
       return;
     }
-    const commandsText = generateCommandsFromModel(logicModelData);
+    const commandsText = generateCommandsFromModel(AppState.logicModelData);
     
-    // Clipboard API でコピー
-    navigator.clipboard.writeText(commandsText)
-      .then(() => {
-        // コピー成功時、成功メッセージを表示
-        showCopySuccess();
-      })
-      .catch((err) => {
-        console.error("コマンドのコピーに失敗しました:", err);
-        alert("コマンドのコピーに失敗しました。");
-      });
+    copyToClipboard(commandsText,
+      () => showTemporaryMessage(ELEMENT_IDS.COPY_SUCCESS, TIMING.MESSAGE_DURATION),
+      (err) => showError(ERROR_MESSAGES.COPY_FAILED, err)
+    );
   }
   
   /**
    * コピー成功時のメッセージ表示
    */
   function showCopySuccess() {
-    const successMsg = document.getElementById('copySuccess');
-    successMsg.style.display = 'inline';
-    setTimeout(() => {
-      successMsg.style.display = 'none';
-    }, 2000);
+    showTemporaryMessage(ELEMENT_IDS.COPY_SUCCESS, TIMING.MESSAGE_DURATION);
   }
   

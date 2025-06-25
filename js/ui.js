@@ -1,9 +1,11 @@
 /* js/ui.js */
 
-// グローバル変数
-let selectedNodesForRelation = [];
-let isCtrlPressed = false;
+// ローカル変数（AppStateに統合済み）
 let relationTooltip = null;
+let isCtrlPressed = false;
+
+// 後方互換性のためのグローバル参照
+let selectedNodesForRelation = [];
 window.startingNodeForRelation = null;
 window.isWaitingForRelationEnd = false;
 
@@ -36,76 +38,102 @@ function attachSvgEventHandlers() {
   const svg = document.querySelector('#output svg');
   if (!svg) return;
 
-  // ノード処理
+  attachNodeEventHandlers(svg);
+  attachEdgeEventHandlers(svg);
+  attachSvgClickHandler(svg);
+}
+
+function attachNodeEventHandlers(svg) {
   const nodes = svg.querySelectorAll('g.node');
   nodes.forEach(node => {
     node.style.cursor = "pointer";
     const nodeId = node.querySelector('title').textContent.trim();
 
-    // マウスエンター／リーブで、上下流の連続パスのみハイライト
-    node.addEventListener('mouseenter', () => {
-      highlightRelatedElements(nodeId);
-    });
-    node.addEventListener('mouseleave', () => {
-      clearRelatedHighlights();
-    });
-
-    node.addEventListener('click', e => {
-      e.stopPropagation();
-      if (window.isWaitingForRelationEnd) {
-        if (window.startingNodeForRelation && window.startingNodeForRelation !== nodeId) {
-          const fromNode = window.startingNodeForRelation;
-          const relationAdded = addRelation(fromNode, nodeId);
-          window.isWaitingForRelationEnd = false;
-          window.startingNodeForRelation = null;
-          clearSelection();
-          hideTooltip();
-          reRenderModel().then(() => {
-            if (relationAdded) highlightNewRelation(fromNode, nodeId);
-          });
-        } else {
-          window.isWaitingForRelationEnd = false;
-          window.startingNodeForRelation = null;
-          clearSelection();
-          hideTooltip();
-        }
-        return;
-      }
-      if (e.ctrlKey) {
-        handleNodeRelationSelection(node, nodeId);
-      } else {
-        window.currentEditingType = "element";
-        window.currentEditingId = nodeId;
-        showEditPanelForElement(node, nodeId, e);
-      }
-    });
+    // ホバーイベント
+    node.addEventListener('mouseenter', () => highlightRelatedElements(nodeId));
+    node.addEventListener('mouseleave', () => clearRelatedHighlights());
+    
+    // クリックイベント
+    node.addEventListener('click', e => handleNodeClick(e, node, nodeId));
   });
+}
 
-  // エッジ処理
+function handleNodeClick(e, node, nodeId) {
+  e.stopPropagation();
+  
+  // 関係線待機モード
+  if (AppState.isWaitingForRelationEnd || window.isWaitingForRelationEnd) {
+    handleRelationEndClick(nodeId);
+    return;
+  }
+  
+  // Ctrl+クリック（複数選択）
+  if (e.ctrlKey) {
+    handleNodeRelationSelection(node, nodeId);
+  } else {
+    // 通常クリック（編集パネル表示）
+    AppState.currentEditingType = "element";
+    AppState.currentEditingId = nodeId;
+    window.currentEditingType = "element"; // 後方互換性
+    window.currentEditingId = nodeId;
+    showEditPanelForElement(node, nodeId, e);
+  }
+}
+
+function handleRelationEndClick(nodeId) {
+  const startingNode = AppState.startingNodeForRelation || window.startingNodeForRelation;
+  if (startingNode && startingNode !== nodeId) {
+    const relationAdded = addRelation(startingNode, nodeId);
+    resetRelationWaitingState();
+    clearSelection();
+    hideTooltip();
+    reRenderModel().then(() => {
+      if (relationAdded) highlightNewRelation(startingNode, nodeId);
+    });
+  } else {
+    resetRelationWaitingState();
+    clearSelection();
+    hideTooltip();
+  }
+}
+
+function resetRelationWaitingState() {
+  AppState.isWaitingForRelationEnd = false;
+  AppState.startingNodeForRelation = null;
+  window.isWaitingForRelationEnd = false; // 後方互換性
+  window.startingNodeForRelation = null;
+}
+
+function attachEdgeEventHandlers(svg) {
   const edges = svg.querySelectorAll('g.edge');
   edges.forEach(edge => {
     edge.style.cursor = "pointer";
-    edge.addEventListener('mouseover', () => edge.classList.add('edge-hover'));
-    edge.addEventListener('mouseout', () => edge.classList.remove('edge-hover'));
-    edge.addEventListener('click', e => {
-      e.stopPropagation();
-      const edgeIdAttr = edge.getAttribute('id');
-      if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
-        const parts = edgeIdAttr.substring(5).split('_');
-        if (parts.length >= 2) {
-          window.currentEditingType = "edge";
-          window.currentEditingEdge = { from: parts[0], to: parts[1] };
-          showEditPanelForEdge(edge, window.currentEditingEdge, e);
-        }
-      }
-    });
+    edge.addEventListener('mouseover', () => edge.classList.add(CSS_CLASSES.EDGE_HOVER));
+    edge.addEventListener('mouseout', () => edge.classList.remove(CSS_CLASSES.EDGE_HOVER));
+    edge.addEventListener('click', e => handleEdgeClick(e, edge));
   });
+}
 
-  // SVG全体クリックでパネル非表示
+function handleEdgeClick(e, edge) {
+  e.stopPropagation();
+  const edgeIdAttr = edge.getAttribute('id');
+  if (edgeIdAttr && edgeIdAttr.startsWith('edge_')) {
+    const parts = edgeIdAttr.substring(5).split('_');
+    if (parts.length >= 2) {
+      const edgeData = { from: parts[0], to: parts[1] };
+      AppState.currentEditingType = "edge";
+      AppState.currentEditingEdge = edgeData;
+      window.currentEditingType = "edge"; // 後方互換性
+      window.currentEditingEdge = edgeData;
+      showEditPanelForEdge(edge, edgeData, e);
+    }
+  }
+}
+
+function attachSvgClickHandler(svg) {
   svg.addEventListener('click', () => {
-    if (window.isWaitingForRelationEnd) {
-      window.isWaitingForRelationEnd = false;
-      window.startingNodeForRelation = null;
+    if (AppState.isWaitingForRelationEnd || window.isWaitingForRelationEnd) {
+      resetRelationWaitingState();
       clearSelection();
       hideTooltip();
     }
@@ -123,7 +151,10 @@ function attachSvgEventHandlers() {
 function getUpstreamAll(nodeId, currentPath = new Set()) {
   let nodes = new Set();
   let edges = new Set();
-  for (let rel of logicModelData.relations) {
+  const modelData = AppState.logicModelData || logicModelData;
+  if (!modelData) return { nodes, edges };
+  
+  for (let rel of modelData.relations) {
     if (rel.to === nodeId) {
       if (!currentPath.has(rel.from)) {
         edges.add(rel.from + "->" + rel.to);
@@ -147,7 +178,10 @@ function getUpstreamAll(nodeId, currentPath = new Set()) {
 function getDownstreamAll(nodeId, currentPath = new Set()) {
   let nodes = new Set();
   let edges = new Set();
-  for (let rel of logicModelData.relations) {
+  const modelData = AppState.logicModelData || logicModelData;
+  if (!modelData) return { nodes, edges };
+  
+  for (let rel of modelData.relations) {
     if (rel.from === nodeId) {
       if (!currentPath.has(rel.to)) {
         edges.add(rel.from + "->" + rel.to);
@@ -170,7 +204,8 @@ function getDownstreamAll(nodeId, currentPath = new Set()) {
  * - エッジは DFS で通ったもの（すべての経路の union）に含まれるもののみハイライト (.edge-related)
  */
 function highlightRelatedElements(hoveredNodeId) {
-  if (!logicModelData) return;
+  const modelData = AppState.logicModelData || logicModelData;
+  if (!modelData) return;
   
   // 上流・下流をそれぞれ探索（各経路を全て考慮）
   const upstreamRes = getUpstreamAll(hoveredNodeId);
@@ -191,13 +226,13 @@ function highlightRelatedElements(hoveredNodeId) {
   svg.querySelectorAll('g.node').forEach(node => {
     const id = node.querySelector('title').textContent.trim();
     if (id === hoveredNodeId) {
-      node.classList.add('node-hover');
-      node.classList.remove('node-related');
+      node.classList.add(CSS_CLASSES.NODE_HOVER);
+      node.classList.remove(CSS_CLASSES.NODE_RELATED);
     } else if (relatedNodes.has(id)) {
-      node.classList.add('node-related');
-      node.classList.remove('node-hover');
+      node.classList.add(CSS_CLASSES.NODE_RELATED);
+      node.classList.remove(CSS_CLASSES.NODE_HOVER);
     } else {
-      node.classList.remove('node-hover', 'node-related');
+      node.classList.remove(CSS_CLASSES.NODE_HOVER, CSS_CLASSES.NODE_RELATED);
     }
   });
   
@@ -211,9 +246,9 @@ function highlightRelatedElements(hoveredNodeId) {
         const to = parts[1];
         const key = from + "->" + to;
         if (dfsEdges.has(key)) {
-          edge.classList.add('edge-related');
+          edge.classList.add(CSS_CLASSES.EDGE_RELATED);
         } else {
-          edge.classList.remove('edge-related');
+          edge.classList.remove(CSS_CLASSES.EDGE_RELATED);
         }
       }
     }
@@ -227,10 +262,10 @@ function clearRelatedHighlights() {
   const svg = document.querySelector('#output svg');
   if (!svg) return;
   svg.querySelectorAll('g.node').forEach(node => {
-    node.classList.remove('node-hover', 'node-related');
+    node.classList.remove(CSS_CLASSES.NODE_HOVER, CSS_CLASSES.NODE_RELATED);
   });
   svg.querySelectorAll('g.edge').forEach(edge => {
-    edge.classList.remove('edge-related');
+    edge.classList.remove(CSS_CLASSES.EDGE_RELATED);
   });
 }
 

@@ -9,6 +9,9 @@
   <!-- Viz.js CDN -->
   <script src="https://unpkg.com/viz.js"></script>
   <script src="https://unpkg.com/viz.js/full.render.js"></script>
+  <!-- アプリケーションスクリプト -->
+  <script src="js/constants.js"></script>
+  <script src="js/utils.js"></script>
 </head>
 <body>
 <!-- 保存・読込ボタン（常に表示） -->
@@ -23,15 +26,15 @@
   <input type="file" id="jsonFileInput" accept="application/json" style="display: none;">
 </div>
 
-  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5" oninput="processCommands()"></textarea>
+  <textarea id="commands" placeholder="ここにチャットボットの回答を貼り付けてください" rows="5"></textarea>
   
   <!-- 編集メニュー：コマンドが入力されたときのみ表示 -->
   <div class="editing-menu" style="display:none;">
     <button id="addElementButton" title="新しい要素を追加">要素追加</button>
-    <button id="undoButton" onclick="undoLastAction()" title="元に戻す" disabled>
+    <button id="undoButton" title="元に戻す" disabled>
       <i class="fa-solid fa-undo"></i>
     </button>
-    <button id="redoButton" onclick="redoLastAction()" title="やり直す" disabled>
+    <button id="redoButton" title="やり直す" disabled>
       <i class="fa-solid fa-redo"></i>
     </button>
     <button id="helpButton" title="編集ヘルプの表示">編集ヘルプ</button>
@@ -43,23 +46,23 @@
     <!-- コントロールコンテナ／各種コントロール -->
     <div id="controlsContainer">
       <div id="styleControls">
-        <select id="splineType" onchange="reRenderModel()" title="接続線の形状">
+        <select id="splineType" title="接続線の形状">
           <option value="line">直線</option>
           <option value="spline">曲線</option>
         </select>
-        <select id="edgeType" onchange="reRenderModel()" title="接続線の先端">
+        <select id="edgeType" title="接続線の先端">
           <option value="line">方向表示なし</option>
           <option value="arrow">方向表示あり</option>
         </select>
-        <select id="edgeAttachmentStyle" onchange="reRenderModel()" title="接続位置の配置">
+        <select id="edgeAttachmentStyle" title="接続位置の配置">
           <option value="fixed">線の始点終点を固定</option>
           <option value="auto">線の始点終点を自動配置</option>
         </select>
       </div>
       <div id="downloadControls">
-        <button onclick="downloadPNG()" title="PNGとしてダウンロード">PNGダウンロード</button>
-        <button onclick="downloadSVG()" title="SVGとしてダウンロード">SVGダウンロード</button>
-        <button id="powerpointHelpButton" onclick="showPowerpointHelpPanel(event)" title="パワポ貼付ヘルプ">パワポ貼付ヘルプ</button>
+        <button id="pngDownloadButton" title="PNGとしてダウンロード">PNGダウンロード</button>
+        <button id="svgDownloadButton" title="SVGとしてダウンロード">SVGダウンロード</button>
+        <button id="powerpointHelpButton" title="パワポ貼付ヘルプ">パワポ貼付ヘルプ</button>
       </div>
     </div>
   </div>
@@ -67,7 +70,7 @@
   <!-- 修正指示フォーム -->
   <div id="correctionForm" style="display:none;">
     <textarea id="correctionInstructions" placeholder="編集内容を踏まえ、引き続きチャットボットに修正を指示したい場合は、修正内容をここに記載した後、下のコピーボタンをクリックしてください" rows="5"></textarea>
-    <button id="copyCorrectionButton" onclick="copyCorrectionInstructions()">チャットボット貼付用修正指示をコピー</button>
+    <button id="copyCorrectionButton">チャットボット貼付用修正指示をコピー</button>
     <span id="copySuccess" class="copy-success">指示をコピーしました。チャット画面に戻り指示を貼り付けてください</span>
   </div>
   

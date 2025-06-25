@@ -1,7 +1,7 @@
 function downloadPNG() {
   const svg = document.querySelector('#output svg');
   if (!svg) {
-    alert('ロジックモデルが生成されていません');
+    showError(ERROR_MESSAGES.NO_SVG_GENERATED);
     return;
   }
 
@@ -11,18 +11,18 @@ function downloadPNG() {
   const url = URL.createObjectURL(svgBlob);
   const image = new Image();
   image.onload = () => {
-    const padding = 40;
+    const padding = GRAPHVIZ_CONFIG.PNG_PADDING;
     const canvas = document.createElement("canvas");
     canvas.width = image.width + padding * 2;
     canvas.height = image.height + padding * 2;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
+    ctx.fillStyle = GRAPHVIZ_CONFIG.CANVAS_BG_COLOR;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, padding, padding);
     canvas.toBlob(blob => {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "logic_model.png";
+      a.download = FILE_NAMES.LOGIC_MODEL_PNG;
       a.click();
       URL.revokeObjectURL(a.href);
     });
@@ -30,7 +30,7 @@ function downloadPNG() {
   };
   image.onerror = () => {
     URL.revokeObjectURL(url);
-    alert('画像の生成に失敗しました');
+    showError(ERROR_MESSAGES.IMAGE_GENERATION_FAILED);
   };
   image.src = url;
 }
@@ -38,16 +38,10 @@ function downloadPNG() {
 function downloadSVG() {
   const svg = document.querySelector('#output svg');
   if (!svg) {
-    alert('ロジックモデルが生成されていません');
+    showError(ERROR_MESSAGES.NO_SVG_GENERATED);
     return;
   }
   const serializer = new XMLSerializer();
   const svgString = serializer.serializeToString(svg);
-  const blob = new Blob([svgString], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "logic_model.svg";
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadFile(svgString, FILE_NAMES.LOGIC_MODEL_SVG, MIME_TYPES.SVG);
 }

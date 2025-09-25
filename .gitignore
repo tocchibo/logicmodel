@@ -1,12 +1,38 @@
-# Ignore Python script
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Windows shortcuts
+*.lnk
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+*.cache
+
+# Project specific files
 generate_project_summary.py
-
-# Ignore text file
 logicmodel_project_summary.txt
-
-# Ignore Pipenv files
 Pipfile
 Pipfile.lock
-
-# Ignore virtual environment folder
 .venv/
+
+# Development tools
+.mcp.json
+.serena/

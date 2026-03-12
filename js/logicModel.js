@@ -36,7 +36,8 @@ function parseCommands(input) {
     .filter(cmd => cmd.length > 0);
 
   commands.forEach(cmd => {
-    const match = cmd.match(/^(\w+)\b(.*)$/);
+    // 改行を含むコマンド本文（例: CREATE の複数行定義）も丸ごと取得する
+    const match = cmd.match(/^(\w+)\b([\s\S]*)$/);
     if (!match) return;
     const commandType = match[1].toUpperCase();
     const rest = match[2].trim();

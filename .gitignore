@@ -29,6 +29,7 @@ desktop.ini
 # Project specific files
 generate_project_summary.py
 logicmodel_project_summary.txt
+docs/prompt.txt
 Pipfile
 Pipfile.lock
 .venv/

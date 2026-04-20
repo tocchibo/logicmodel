@@ -1,0 +1,66 @@
+STEP 1;
+TITLE
+  "テスト用ロジックモデル: 改行・記号・複数関係";
+
+CREATE input1 "予算・助成金",
+       input2 "専門人材, 外部アドバイザー",
+       input3 "既存データ; 過年度調査",
+       input4 "地域ネットワーク";
+
+CREATE activity1 "ニーズ調査\nヒアリング",
+       activity2 "研修プログラム\n設計",
+       activity3 "実証事業の\n運営",
+       activity4 "結果レビューと\n改善";
+
+RELATE input1 activity2, input1 activity3;
+RELATE input2 activity1,
+       input2 activity2,
+       input2 activity4;
+RELATE input3 activity1, input3 activity4;
+RELATE input4 activity1, input4 activity3;
+
+STEP 2;
+CREATE output1 "参加者の\n課題リスト",
+       output2 "研修教材・\n実施計画",
+       output3 "実証事業の\n実施記録",
+       output4 "改善提案書";
+
+RELATE activity1 output1;
+RELATE activity2 output2;
+RELATE activity3 output3;
+RELATE activity4 output4;
+RELATE activity1 output2,
+       activity3 output4;
+
+STEP 3;
+CREATE outcome1 "対象者の\n課題理解が向上",
+       outcome2 "支援手法の\n標準化が進む",
+       outcome3 "現場での\n実践回数が増加";
+
+CREATE outcome4 "サービス品質の\nばらつきが縮小",
+       outcome5 "関係者間の\n連携が強化",
+       outcome6 "継続的な改善\nサイクルが定着";
+
+CREATE outcome7 "地域全体の\n支援体制が成熟";
+
+RELATE output1 outcome1, output1 outcome5;
+RELATE output2 outcome1, output2 outcome2;
+RELATE output3 outcome3, output3 outcome5;
+RELATE output4 outcome2, output4 outcome6;
+RELATE outcome1 outcome3;
+RELATE outcome2 outcome4;
+RELATE outcome3 outcome4, outcome3 outcome6;
+RELATE outcome4 outcome7,
+       outcome5 outcome7,
+       outcome6 outcome7;
+
+STEP 4;
+CREATE impact1 "利用者の\n生活の質が向上",
+       impact2 "地域資源の\n有効活用が進む",
+       impact3 "持続可能な\n支援モデルが確立";
+
+RELATE outcome7 impact1,
+       outcome7 impact2,
+       outcome7 impact3;
+
+COMPLETE;

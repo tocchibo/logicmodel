@@ -73,6 +73,7 @@ const ELEMENT_IDS = {
   
   // ツールチップ・パネル
   RELATION_TOOLTIP: 'relationTooltip',
+  POWERPOINT_HELP_BUTTON: 'powerpointHelpButton',
   POWERPOINT_HELP_PANEL: 'powerpointHelpPanel'
 };
 

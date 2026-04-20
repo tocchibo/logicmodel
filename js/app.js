@@ -223,6 +223,7 @@ function initEventListeners() {
   // ダウンロード
   document.getElementById('pngDownloadButton').addEventListener('click', downloadPNG);
   document.getElementById('svgDownloadButton').addEventListener('click', downloadSVG);
+  document.getElementById(ELEMENT_IDS.POWERPOINT_HELP_BUTTON).addEventListener('click', showPowerpointHelpPanel);
   
   // 修正指示コピー
   document.getElementById(ELEMENT_IDS.COPY_CORRECTION_BUTTON).addEventListener('click', copyCorrectionInstructions);

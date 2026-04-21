@@ -1,26 +1,32 @@
 <!DOCTYPE html>
-<html lang="jp">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ロジックモデル描画・編集</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Viz.js CDN -->
-  <script src="https://unpkg.com/viz.js"></script>
-  <script src="https://unpkg.com/viz.js/full.render.js"></script>
+  <!-- Viz.js CDN (version pinned) -->
+  <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
+  <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
   <!-- アプリケーションスクリプト -->
   <script src="js/constants.js"></script>
   <script src="js/utils.js"></script>
 </head>
 <body>
 <!-- 保存・読込ボタン（常に表示） -->
-<div id="saveLoadContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1100;">
-  <button id="saveButton" title="保存" style="background: none; border: none; cursor: pointer; font-size: 24px;">
-    <i class="fa-solid fa-floppy-disk"></i>
+<div id="saveLoadContainer" class="save-load-container">
+  <button id="saveButton" class="icon-button" title="保存" aria-label="保存">
+    <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 3h12l2 2v16H5z"></path>
+      <path d="M8 3v6h8V3"></path>
+      <path d="M8 21v-7h8v7"></path>
+    </svg>
   </button>
-  <button id="loadButton" title="読み込み" style="background: none; border: none; cursor: pointer; font-size: 24px;">
-    <i class="fa-solid fa-folder-open"></i>
+  <button id="loadButton" class="icon-button" title="読み込み" aria-label="読み込み">
+    <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M3 7h7l2 2h9v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"></path>
+      <path d="M3 7v-1a2 2 0 0 1 2-2h5l2 3"></path>
+    </svg>
   </button>
   <!-- 読込用隠しファイル入力 -->
   <input type="file" id="jsonFileInput" accept="application/json" style="display: none;">
@@ -31,11 +37,17 @@
   <!-- 編集メニュー：コマンドが入力されたときのみ表示 -->
   <div class="editing-menu" style="display:none;">
     <button id="addElementButton" title="新しい要素を追加">要素追加</button>
-    <button id="undoButton" title="元に戻す" disabled>
-      <i class="fa-solid fa-undo"></i>
+    <button id="undoButton" class="icon-button" title="元に戻す" aria-label="元に戻す" disabled>
+      <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M9 7H4v5"></path>
+        <path d="M4 7c3-3 8-4 12-1.5 4 2.5 5 8 .5 11.5"></path>
+      </svg>
     </button>
-    <button id="redoButton" title="やり直す" disabled>
-      <i class="fa-solid fa-redo"></i>
+    <button id="redoButton" class="icon-button" title="やり直す" aria-label="やり直す" disabled>
+      <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M15 7h5v5"></path>
+        <path d="M20 7c-3-3-8-4-12-1.5-4 2.5-5 8-.5 11.5"></path>
+      </svg>
     </button>
     <button id="helpButton" title="編集ヘルプの表示">編集ヘルプ</button>
   </div>
@@ -46,15 +58,15 @@
     <!-- コントロールコンテナ／各種コントロール -->
     <div id="controlsContainer">
       <div id="styleControls">
-        <select id="splineType" title="接続線の形状">
+        <select id="splineType" title="接続線の形状" aria-label="接続線の形状">
           <option value="line">直線</option>
           <option value="spline">曲線</option>
         </select>
-        <select id="edgeType" title="接続線の先端">
+        <select id="edgeType" title="接続線の先端" aria-label="接続線の先端">
           <option value="line">方向表示なし</option>
           <option value="arrow">方向表示あり</option>
         </select>
-        <select id="edgeAttachmentStyle" title="接続位置の配置">
+        <select id="edgeAttachmentStyle" title="接続位置の配置" aria-label="接続位置の配置">
           <option value="fixed">線の始点終点を固定</option>
           <option value="auto">線の始点終点を自動配置</option>
         </select>
@@ -71,7 +83,7 @@
   <div id="correctionForm" style="display:none;">
     <textarea id="correctionInstructions" placeholder="編集内容を踏まえ、引き続きチャットボットに修正を指示したい場合は、修正内容をここに記載した後、下のコピーボタンをクリックしてください" rows="5"></textarea>
     <button id="copyCorrectionButton">チャットボット貼付用修正指示をコピー</button>
-    <span id="copySuccess" class="copy-success">指示をコピーしました。チャット画面に戻り指示を貼り付けてください</span>
+    <span id="copySuccess" class="copy-success" role="status" aria-live="polite">指示をコピーしました。チャット画面に戻り指示を貼り付けてください</span>
   </div>
   
   <canvas id="tempCanvas"></canvas>
@@ -80,10 +92,10 @@
   <div id="relationTooltip" style="position: absolute; display: none; pointer-events: none; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; z-index: 2000;"></div>
   
   <!-- 編集パネル -->
-  <div id="editPanel" class="edit-panel" style="display:none;"></div>
+  <div id="editPanel" class="edit-panel" role="dialog" aria-modal="false" style="display:none;"></div>
 
   <!-- パワーポイント貼付ヘルプ用パネル（画面中央に大きめ表示） -->
-  <div id="powerpointHelpPanel" class="edit-panel" style="display:none;"></div>
+  <div id="powerpointHelpPanel" class="edit-panel" role="dialog" aria-modal="false" style="display:none;"></div>
 
   <script src="js/downloads.js"></script>
   <script src="js/logicModel.js"></script>

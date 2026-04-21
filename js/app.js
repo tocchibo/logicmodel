@@ -26,15 +26,9 @@ const AppState = {
   selectedNodesForRelation: [],
   currentEditingType: null,
   currentEditingId: null,
-  currentEditingEdge: null
+  currentEditingEdge: null,
+  lastAddedCategory: "input"
 };
-
-// グローバル参照（後方互換性のため一時的に残す）
-let logicModelData = null;
-let elementCounters = AppState.elementCounters;
-let undoStack = AppState.undoStack;
-let redoStack = AppState.redoStack;
-let isEdited = false;
 
 /**
  * 保存ボタンの状態を更新する
@@ -60,7 +54,6 @@ function saveState() {
   if (AppState.logicModelData) {
     AppState.undoStack.push(deepClone(AppState.logicModelData));
     AppState.isEdited = true;
-    isEdited = true; // 後方互換性
     AppState.redoStack = [];
     updateUndoRedoButtons();
   }
@@ -88,7 +81,6 @@ async function processCommands() {
       [ELEMENT_IDS.OUTPUT_CONTAINER]: false
     });
     AppState.logicModelData = null;
-    logicModelData = null; // 後方互換性
     updateSaveButtonState();
     return;
   } else {
@@ -97,9 +89,7 @@ async function processCommands() {
   }
   
   AppState.logicModelData = parseCommands(commands);
-  logicModelData = AppState.logicModelData; // 後方互換性
   AppState.isEdited = false;
-  isEdited = false; // 後方互換性
   updateElementCounters();
   AppState.undoStack = [];
   AppState.redoStack = [];
@@ -118,7 +108,6 @@ function updateElementCounters() {
       AppState.elementCounters[cat] = num + 1;
     }
   }
-  elementCounters = AppState.elementCounters; // 後方互換性
 }
 
 function clearCommands() {
@@ -134,12 +123,10 @@ function clearCommands() {
   
   // 内部のロジックモデルをクリア
   AppState.logicModelData = null;
-  logicModelData = null; // 後方互換性
   updateSaveButtonState();
   AppState.undoStack = [];
   AppState.redoStack = [];
   AppState.isEdited = false;
-  isEdited = false; // 後方互換性
   updateUndoRedoButtons();
 }
 
@@ -147,7 +134,6 @@ function undoLastAction() {
   if (AppState.undoStack.length > 0) {
     AppState.redoStack.push(deepClone(AppState.logicModelData));
     AppState.logicModelData = AppState.undoStack.pop();
-    logicModelData = AppState.logicModelData; // 後方互換性
     updateUndoRedoButtons();
     reRenderModel();
     updateSaveButtonState();
@@ -158,7 +144,6 @@ function redoLastAction() {
   if (AppState.redoStack.length > 0) {
     AppState.undoStack.push(deepClone(AppState.logicModelData));
     AppState.logicModelData = AppState.redoStack.pop();
-    logicModelData = AppState.logicModelData; // 後方互換性
     updateUndoRedoButtons();
     reRenderModel();
     updateSaveButtonState();
@@ -286,7 +271,6 @@ function handleFileLoad(e) {
     try {
       const loadedModel = JSON.parse(evt.target.result);
       AppState.logicModelData = loadedModel;
-      logicModelData = AppState.logicModelData; // 後方互換性
       
       // 読み込んだロジックモデルからコマンド文字列を生成し、コマンド入力フォームに設定
       const commandsText = generateCommandsFromModel(AppState.logicModelData);

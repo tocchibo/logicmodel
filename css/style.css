@@ -1,8 +1,6 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap');
-
 :root {
   /* 基本フォント・サイズ・間隔 */
-  --font-family: 'Roboto', sans-serif;
+  --font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   --primary-bg: #f0f2f5;
   --primary-text: #333;
   --max-width: 1200px;
@@ -47,6 +45,51 @@ body {
   margin: 0 auto;
 }
 
+.save-load-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1100;
+  display: flex;
+  gap: 6px;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  background: transparent;
+  color: var(--primary-text);
+  cursor: pointer;
+}
+
+.icon-button:hover,
+.icon-button:focus-visible {
+  background: var(--button-bg);
+  border-color: var(--border-color);
+  outline: none;
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.button-icon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* コマンド入力エリア */
 textarea#commands {
   width: 100%;
@@ -61,6 +104,7 @@ textarea#commands {
 /* 編集メニュー */
 .editing-menu {
   display: none; /* 必要時にJS側で表示 */
+  flex-wrap: wrap;
   gap: 5px;
   margin-bottom: 10px;
   padding: 10px 5px 0;
@@ -97,6 +141,8 @@ textarea#commands {
 #controlsContainer {
   margin-top: 10px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
   align-items: center;
 }
@@ -105,6 +151,9 @@ textarea#commands {
   background: var(--control-bg);
   padding: 5px;
   border-radius: var(--border-radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 #styleControls select {
@@ -112,13 +161,15 @@ textarea#commands {
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
-  margin-right: 5px;
 }
 
 #downloadControls {
   background: var(--control-bg);
   padding: 5px;
   border-radius: var(--border-radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 #downloadControls button {
@@ -128,7 +179,6 @@ textarea#commands {
   border-radius: var(--border-radius);
   background: var(--button-bg);
   cursor: pointer;
-  margin-left: 5px;
 }
 
 /* 修正指示フォーム */
@@ -173,7 +223,7 @@ textarea#commands {
 }
 
 .edit-panel-content {
-  min-width: 300px;
+  width: min(360px, calc(100vw - 48px));
 }
 
 .edit-panel-section {
@@ -298,4 +348,37 @@ textarea#commands {
 .edge-related path {
   stroke: var(--edge-hover-stroke) !important;
   stroke-width: var(--edge-hover-width) !important;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --padding: 12px;
+  }
+
+  body {
+    padding-top: 58px;
+  }
+
+  .save-load-container {
+    top: 10px;
+    right: 12px;
+  }
+
+  textarea#commands,
+  #correctionForm textarea {
+    box-sizing: border-box;
+  }
+
+  #controlsContainer,
+  #styleControls,
+  #downloadControls {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  #styleControls select,
+  #downloadControls button {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
 }

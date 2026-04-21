@@ -4,11 +4,6 @@
 let relationTooltip = null;
 let isCtrlPressed = false;
 
-// 後方互換性のためのグローバル参照
-let selectedNodesForRelation = [];
-window.startingNodeForRelation = null;
-window.isWaitingForRelationEnd = false;
-
 /**
  * 画面端にはみ出す場合、パネルの位置を調整する関数
  */
@@ -29,6 +24,15 @@ function positionPanel(panel, x, y) {
   }
   panel.style.left = adjustedX + "px";
   panel.style.top = adjustedY + "px";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**
@@ -62,7 +66,7 @@ function handleNodeClick(e, node, nodeId) {
   e.stopPropagation();
   
   // 関係線待機モード
-  if (AppState.isWaitingForRelationEnd || window.isWaitingForRelationEnd) {
+  if (AppState.isWaitingForRelationEnd) {
     handleRelationEndClick(nodeId);
     return;
   }
@@ -74,14 +78,12 @@ function handleNodeClick(e, node, nodeId) {
     // 通常クリック（編集パネル表示）
     AppState.currentEditingType = "element";
     AppState.currentEditingId = nodeId;
-    window.currentEditingType = "element"; // 後方互換性
-    window.currentEditingId = nodeId;
     showEditPanelForElement(node, nodeId, e);
   }
 }
 
 function handleRelationEndClick(nodeId) {
-  const startingNode = AppState.startingNodeForRelation || window.startingNodeForRelation;
+  const startingNode = AppState.startingNodeForRelation;
   if (startingNode && startingNode !== nodeId) {
     const relationAdded = addRelation(startingNode, nodeId);
     resetRelationWaitingState();
@@ -100,8 +102,6 @@ function handleRelationEndClick(nodeId) {
 function resetRelationWaitingState() {
   AppState.isWaitingForRelationEnd = false;
   AppState.startingNodeForRelation = null;
-  window.isWaitingForRelationEnd = false; // 後方互換性
-  window.startingNodeForRelation = null;
 }
 
 function attachEdgeEventHandlers(svg) {
@@ -123,8 +123,6 @@ function handleEdgeClick(e, edge) {
       const edgeData = { from: parts[0], to: parts[1] };
       AppState.currentEditingType = "edge";
       AppState.currentEditingEdge = edgeData;
-      window.currentEditingType = "edge"; // 後方互換性
-      window.currentEditingEdge = edgeData;
       showEditPanelForEdge(edge, edgeData, e);
     }
   }
@@ -132,7 +130,7 @@ function handleEdgeClick(e, edge) {
 
 function attachSvgClickHandler(svg) {
   svg.addEventListener('click', () => {
-    if (AppState.isWaitingForRelationEnd || window.isWaitingForRelationEnd) {
+    if (AppState.isWaitingForRelationEnd) {
       resetRelationWaitingState();
       clearSelection();
       hideTooltip();
@@ -151,7 +149,7 @@ function attachSvgClickHandler(svg) {
 function getUpstreamAll(nodeId, currentPath = new Set()) {
   let nodes = new Set();
   let edges = new Set();
-  const modelData = AppState.logicModelData || logicModelData;
+  const modelData = AppState.logicModelData;
   if (!modelData) return { nodes, edges };
   
   for (let rel of modelData.relations) {
@@ -178,7 +176,7 @@ function getUpstreamAll(nodeId, currentPath = new Set()) {
 function getDownstreamAll(nodeId, currentPath = new Set()) {
   let nodes = new Set();
   let edges = new Set();
-  const modelData = AppState.logicModelData || logicModelData;
+  const modelData = AppState.logicModelData;
   if (!modelData) return { nodes, edges };
   
   for (let rel of modelData.relations) {
@@ -204,7 +202,7 @@ function getDownstreamAll(nodeId, currentPath = new Set()) {
  * - エッジは DFS で通ったもの（すべての経路の union）に含まれるもののみハイライト (.edge-related)
  */
 function highlightRelatedElements(hoveredNodeId) {
-  const modelData = AppState.logicModelData || logicModelData;
+  const modelData = AppState.logicModelData;
   if (!modelData) return;
   
   // 上流・下流をそれぞれ探索（各経路を全て考慮）
@@ -275,15 +273,15 @@ function clearRelatedHighlights() {
  * Ctrl＋クリックによる複数ノード選択での関係追加
  */
 function handleNodeRelationSelection(node, nodeId) {
-  if (selectedNodesForRelation.includes(nodeId)) {
-    selectedNodesForRelation = selectedNodesForRelation.filter(id => id !== nodeId);
+  if (AppState.selectedNodesForRelation.includes(nodeId)) {
+    AppState.selectedNodesForRelation = AppState.selectedNodesForRelation.filter(id => id !== nodeId);
     node.classList.remove('node-selected');
   } else {
-    selectedNodesForRelation.push(nodeId);
+    AppState.selectedNodesForRelation.push(nodeId);
     node.classList.add('node-selected');
   }
-  if (selectedNodesForRelation.length === 2) {
-    const [from, to] = selectedNodesForRelation;
+  if (AppState.selectedNodesForRelation.length === 2) {
+    const [from, to] = AppState.selectedNodesForRelation;
     const relationAdded = addRelation(from, to);
     clearSelection();
     reRenderModel().then(() => {
@@ -296,10 +294,11 @@ function handleNodeRelationSelection(node, nodeId) {
  * 関係追加
  */
 function addRelation(from, to) {
-  const exists = logicModelData.relations.some(rel => rel.from === from && rel.to === to);
+  if (!AppState.logicModelData) return false;
+  const exists = AppState.logicModelData.relations.some(rel => rel.from === from && rel.to === to);
   if (!exists) {
     saveState();
-    logicModelData.relations.push({ from, to });
+    AppState.logicModelData.relations.push({ from, to });
     return true;
   }
   return false;
@@ -309,7 +308,7 @@ function addRelation(from, to) {
  * 選択状態を解除
  */
 function clearSelection() {
-  selectedNodesForRelation = [];
+  AppState.selectedNodesForRelation = [];
   const svg = document.querySelector('#output svg');
   if (svg) {
     svg.querySelectorAll('g.node').forEach(node => node.classList.remove('node-selected'));
@@ -322,7 +321,7 @@ function clearSelection() {
 function showEditPanelForElement(svgNode, nodeId, event) {
   const panel = document.getElementById('editPanel');
   positionPanel(panel, event.clientX, event.clientY);
-  const element = logicModelData.elements[nodeId];
+  const element = AppState.logicModelData?.elements[nodeId];
   if (!element) return;
   const labelText = element.label.replace(/\\n/g, "\n");
   const rows = Math.max(3, labelText.split("\n").length);
@@ -330,7 +329,7 @@ function showEditPanelForElement(svgNode, nodeId, event) {
     <div class="edit-panel-content">
       <div class="edit-panel-section">
         <label for="editLabel">ラベル</label>
-        <textarea id="editLabel" rows="${rows}">${labelText}</textarea>
+        <textarea id="editLabel" rows="${rows}">${escapeHtml(labelText)}</textarea>
       </div>
       <div class="edit-panel-section">
         <label for="editCategory">カテゴリー</label>
@@ -343,10 +342,10 @@ function showEditPanelForElement(svgNode, nodeId, event) {
         </select>
       </div>
       <div class="edit-panel-buttons">
-        <button onclick="applyElementEdit('${nodeId}')" class="panel-button">適用</button>
-        <button onclick="deleteElement('${nodeId}')" class="panel-button">削除</button>
-        <button onclick="startRelationFrom('${nodeId}')" class="panel-button">ここから始まる関係線を追加</button>
-        <button onclick="hideEditPanel()" class="panel-button">キャンセル</button>
+        <button type="button" data-action="apply-element" data-node-id="${escapeHtml(nodeId)}" class="panel-button">適用</button>
+        <button type="button" data-action="delete-element" data-node-id="${escapeHtml(nodeId)}" class="panel-button">削除</button>
+        <button type="button" data-action="start-relation" data-node-id="${escapeHtml(nodeId)}" class="panel-button">ここから始まる関係線を追加</button>
+        <button type="button" data-action="close-edit-panel" class="panel-button">キャンセル</button>
       </div>
     </div>
   `;
@@ -359,10 +358,10 @@ function showEditPanelForElement(svgNode, nodeId, event) {
 function applyElementEdit(nodeId) {
   const newLabel = document.getElementById('editLabel').value;
   const newCategory = document.getElementById('editCategory').value;
-  if (logicModelData.elements[nodeId]) {
+  if (AppState.logicModelData?.elements[nodeId]) {
     saveState();
-    logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
-    logicModelData.elements[nodeId].category = newCategory;
+    AppState.logicModelData.elements[nodeId].label = newLabel.replace(/\r\n|\r|\n/g, '\\n');
+    AppState.logicModelData.elements[nodeId].category = newCategory;
   }
   hideEditPanel();
   reRenderModel();
@@ -372,10 +371,10 @@ function applyElementEdit(nodeId) {
  * 要素削除
  */
 function deleteElement(nodeId) {
-  if (logicModelData.elements[nodeId]) {
+  if (AppState.logicModelData?.elements[nodeId]) {
     saveState();
-    delete logicModelData.elements[nodeId];
-    logicModelData.relations = logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
+    delete AppState.logicModelData.elements[nodeId];
+    AppState.logicModelData.relations = AppState.logicModelData.relations.filter(rel => rel.from !== nodeId && rel.to !== nodeId);
   }
   hideEditPanel();
   reRenderModel();
@@ -390,8 +389,8 @@ function showEditPanelForEdge(edgeElement, edgeData, event) {
   panel.innerHTML = `
     <div class="edit-panel-content">
       <div class="edit-panel-buttons">
-        <button onclick="deleteEdge('${edgeData.from}', '${edgeData.to}')" class="panel-button">削除</button>
-        <button onclick="hideEditPanel()" class="panel-button">キャンセル</button>
+        <button type="button" data-action="delete-edge" data-from="${escapeHtml(edgeData.from)}" data-to="${escapeHtml(edgeData.to)}" class="panel-button">削除</button>
+        <button type="button" data-action="close-edit-panel" class="panel-button">キャンセル</button>
       </div>
     </div>
   `;
@@ -403,7 +402,7 @@ function showEditPanelForEdge(edgeElement, edgeData, event) {
  */
 function deleteEdge(from, to) {
   saveState();
-  logicModelData.relations = logicModelData.relations.filter(rel => !(rel.from === from && rel.to === to));
+  AppState.logicModelData.relations = AppState.logicModelData.relations.filter(rel => !(rel.from === from && rel.to === to));
   hideEditPanel();
   reRenderModel();
 }
@@ -414,21 +413,57 @@ function deleteEdge(from, to) {
 function hideEditPanel() {
   const panel = document.getElementById('editPanel');
   panel.style.display = "none";
-  window.currentEditingId = null;
-  window.currentEditingEdge = null;
-  window.currentEditingType = null;
+  AppState.currentEditingId = null;
+  AppState.currentEditingEdge = null;
+  AppState.currentEditingType = null;
   hideTooltip();
+}
+
+function handleEditPanelAction(e) {
+  const button = e.target.closest('button[data-action]');
+  if (!button) return;
+  e.stopPropagation();
+
+  switch (button.dataset.action) {
+    case "apply-element":
+      applyElementEdit(button.dataset.nodeId);
+      break;
+    case "delete-element":
+      deleteElement(button.dataset.nodeId);
+      break;
+    case "start-relation":
+      startRelationFrom(button.dataset.nodeId);
+      break;
+    case "delete-edge":
+      deleteEdge(button.dataset.from, button.dataset.to);
+      break;
+    case "add-new-element":
+      addNewElement();
+      break;
+    case "close-edit-panel":
+      hideEditPanel();
+      break;
+    default:
+      break;
+  }
+}
+
+function handlePowerpointHelpPanelAction(e) {
+  const button = e.target.closest('button[data-action="close-powerpoint-help"]');
+  if (!button) return;
+  e.stopPropagation();
+  hidePowerpointHelpPanel();
 }
 
 /**
  * 「ここから始まる関係線を追加」ボタンの処理
  */
 function startRelationFrom(nodeId) {
-  if (window.currentEditingType === 'element' && window.currentEditingId === nodeId) {
+  if (AppState.currentEditingType === 'element' && AppState.currentEditingId === nodeId) {
     applyElementEdit(nodeId);
   }
-  window.startingNodeForRelation = nodeId;
-  window.isWaitingForRelationEnd = true;
+  AppState.startingNodeForRelation = nodeId;
+  AppState.isWaitingForRelationEnd = true;
   hideEditPanel();
   const svgNode = document.getElementById("node_" + nodeId);
   if (svgNode) {
@@ -464,13 +499,13 @@ document.getElementById('addElementButton').addEventListener('click', function(e
         </select>
       </div>
       <div class="edit-panel-buttons">
-        <button onclick="addNewElement()" class="panel-button">追加</button>
-        <button onclick="hideEditPanel()" class="panel-button">キャンセル</button>
+        <button type="button" data-action="add-new-element" class="panel-button">追加</button>
+        <button type="button" data-action="close-edit-panel" class="panel-button">キャンセル</button>
       </div>
     </div>
   `;
   // デフォルトのカテゴリーは直前に追加した要素のカテゴリー（なければ "input"）
-  const lastCategory = window.lastAddedCategory || "input";
+  const lastCategory = AppState.lastAddedCategory || "input";
   document.getElementById("newElementCategory").value = lastCategory;
   panel.style.display = "block";
   document.getElementById("newElementLabel").focus();
@@ -480,24 +515,27 @@ document.getElementById('addElementButton').addEventListener('click', function(e
  * 新規要素追加
  */
 function addNewElement() {
-  if (!logicModelData) {
-    logicModelData = { title: "", elements: {}, relations: [] };
+  if (!AppState.logicModelData) {
+    AppState.logicModelData = { title: "", elements: {}, relations: [] };
   }
   const label = document.getElementById('newElementLabel').value.trim();
   const category = document.getElementById('newElementCategory').value;
   if (!label) return;
   saveState();
-  const id = category + elementCounters[category];
-  elementCounters[category]++;
+  const id = category + AppState.elementCounters[category];
+  AppState.elementCounters[category]++;
   // ラベル内の改行はそのまま保存（後で生成時に "\\n" に変換される）
-  logicModelData.elements[id] = { id, label: label, category };
+  AppState.logicModelData.elements[id] = { id, label: label, category };
   // 最後に追加した要素のカテゴリーを保存
-  window.lastAddedCategory = category;
+  AppState.lastAddedCategory = category;
   hideEditPanel();
   reRenderModel().then(() => {
     highlightNewNode(id);
   });
 }
+
+document.getElementById('editPanel').addEventListener('click', handleEditPanelAction);
+document.getElementById('powerpointHelpPanel').addEventListener('click', handlePowerpointHelpPanelAction);
 
 /**
  * 編集パネル外クリックでパネル・待機状態解除
@@ -505,9 +543,9 @@ function addNewElement() {
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#editPanel')) {
     clearSelection();
-    if (window.isWaitingForRelationEnd) {
-      window.isWaitingForRelationEnd = false;
-      window.startingNodeForRelation = null;
+    if (AppState.isWaitingForRelationEnd) {
+      AppState.isWaitingForRelationEnd = false;
+      AppState.startingNodeForRelation = null;
       hideTooltip();
     }
     hideEditPanel();
@@ -555,7 +593,7 @@ document.getElementById('helpButton').addEventListener('click', function(e) {
         </table>
       </div>
       <div class="edit-panel-buttons">
-        <button onclick="hideEditPanel()" class="panel-button">閉じる</button>
+        <button type="button" data-action="close-edit-panel" class="panel-button">閉じる</button>
       </div>
     </div>
   `;
@@ -577,13 +615,13 @@ document.addEventListener("DOMContentLoaded", function() {
   document.addEventListener("keyup", function(e) {
     if (e.key === "Control") {
       isCtrlPressed = false;
-      if (!window.isWaitingForRelationEnd) {
+      if (!AppState.isWaitingForRelationEnd) {
         relationTooltip.style.display = "none";
       }
     }
   });
   document.addEventListener("mousemove", function(e) {
-    if (isCtrlPressed || window.isWaitingForRelationEnd) {
+    if (isCtrlPressed || AppState.isWaitingForRelationEnd) {
       updateRelationTooltip(e);
     }
   });
@@ -595,9 +633,9 @@ document.addEventListener("DOMContentLoaded", function() {
 function updateRelationTooltip(e) {
   if (!relationTooltip) return;
   let tooltipText = "";
-  if (window.isWaitingForRelationEnd) {
+  if (AppState.isWaitingForRelationEnd) {
     tooltipText = "終点要素をクリック";
-  } else if (selectedNodesForRelation.length === 0) {
+  } else if (AppState.selectedNodesForRelation.length === 0) {
     tooltipText = "追加したい関係の始点要素をクリック";
   } else {
     tooltipText = "終点要素をクリック";
@@ -650,9 +688,9 @@ function highlightNewNode(id) {
  * ESCキーで待機状態を解除
  */
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && window.isWaitingForRelationEnd) {
-    window.isWaitingForRelationEnd = false;
-    window.startingNodeForRelation = null;
+  if (e.key === 'Escape' && AppState.isWaitingForRelationEnd) {
+    AppState.isWaitingForRelationEnd = false;
+    AppState.startingNodeForRelation = null;
     clearSelection();
     hideTooltip();
   }
@@ -703,7 +741,7 @@ function showPowerpointHelpPanel(e) {
         </p>
       </div>
       <div class="edit-panel-buttons">
-        <button onclick="hidePowerpointHelpPanel()" class="panel-button">閉じる</button>
+        <button type="button" data-action="close-powerpoint-help" class="panel-button">閉じる</button>
       </div>
     </div>
   `;

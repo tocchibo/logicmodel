@@ -83,6 +83,16 @@ function parseQuotedText(value) {
   return match[1].replace(/\\"/g, '"').replace(/\\\\/g, "\\");
 }
 
+function escapeDotString(value) {
+  const normalized = String(value ?? "")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n|\r/g, "\n");
+  return normalized
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n");
+}
+
 function parseCommands(input) {
   const model = {
     title: "",
@@ -167,7 +177,7 @@ function generateDotFromModel(model) {
     ];
     edge [fontname="Arial"${edgeType === "line" ? ", arrowhead=none" : ""}];
 
-    label="${model.title}";
+    label="${escapeDotString(model.title)}";
     labelloc="t";
     fontsize=24;
   `;
@@ -182,7 +192,7 @@ function generateDotFromModel(model) {
     for (const id in model.elements) {
       const element = model.elements[id];
       if (element.category === category) {
-        const label = element.label.split("\\n").join("\\n");
+        const label = escapeDotString(element.label);
         dotData += `${id} [label="${label}", id="node_${id}"]\n`;
       }
     }

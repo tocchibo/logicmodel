@@ -147,7 +147,10 @@ textarea {
 .issue-workspace {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(260px, 300px) minmax(720px, 1fr) minmax(260px, 300px);
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+  grid-template-areas:
+    "canvas canvas"
+    "input inspector";
   gap: 12px;
   padding: 12px;
 }
@@ -164,6 +167,22 @@ textarea {
   display: grid;
   grid-template-rows: auto minmax(220px, 1fr) auto auto;
   overflow: hidden;
+}
+
+.issue-input-panel {
+  grid-area: input;
+  min-height: 460px;
+  max-height: 620px;
+}
+
+.issue-canvas-panel {
+  grid-area: canvas;
+}
+
+.issue-inspector-panel {
+  grid-area: inspector;
+  min-height: 460px;
+  max-height: 620px;
 }
 
 .issue-panel-header,
@@ -296,6 +315,7 @@ textarea {
 }
 
 .issue-map-output {
+  align-self: start;
   min-height: 0;
   overflow: hidden;
   padding: 0;
@@ -560,7 +580,10 @@ textarea {
 @media (max-width: 1180px) {
   .issue-workspace {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(360px, 40vh) minmax(480px, 58vh) minmax(360px, auto);
+    grid-template-areas:
+      "canvas"
+      "input"
+      "inspector";
   }
 
   .issue-topbar {

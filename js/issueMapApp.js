@@ -19,6 +19,14 @@
     minNodeHeight: 36,
     maxNodeHeight: 52
   };
+  const ELK_MAP = {
+    minWidth: 1280,
+    minHeight: 720,
+    padding: 24,
+    titleHeight: 52,
+    nodeWidth: 138,
+    minNodeHeight: 48
+  };
 
   const TYPE_LABELS = {
     issue: "課題",
@@ -199,7 +207,7 @@
     }
 
     try {
-      const svg = createSlideSvg(IssueMapState.data, visibleNodes);
+      const svg = await renderElkMap(IssueMapState.data, visibleNodes);
       svg.setAttribute("role", "img");
       svg.setAttribute("aria-label", IssueMapState.data.title || "課題構造マップ");
       els.output.innerHTML = "";
@@ -502,6 +510,296 @@
     return ids;
   }
 
+  async function renderElkMap(data, visibleNodes) {
+    if (typeof ELK !== "function") {
+      throw new Error("ELK.js が読み込まれていません。");
+    }
+
+    const elk = new ELK();
+    const graph = createElkGraph(data, visibleNodes);
+    const layout = await elk.layout(graph);
+    return createElkSvg(data, layout);
+  }
+
+  function createElkGraph(data, visibleNodes) {
+    const renderableEdgeIds = getRenderableEdgeIds(data);
+    const visibleEdges = data.edges.filter(function (edge) {
+      return renderableEdgeIds.has(edge.id) && visibleNodes.has(edge.from) && visibleNodes.has(edge.to);
+    });
+
+    return {
+      id: "issue-map-root",
+      width: 1180,
+      height: 610,
+      layoutOptions: {
+        "elk.algorithm": "layered",
+        "elk.aspectRatio": "1.7",
+        "elk.direction": "RIGHT",
+        "elk.edgeRouting": "ORTHOGONAL",
+        "elk.spacing.nodeNode": "18",
+        "elk.spacing.edgeNode": "12",
+        "elk.spacing.edgeEdge": "8",
+        "elk.layered.spacing.nodeNodeBetweenLayers": "34",
+        "elk.layered.spacing.edgeNodeBetweenLayers": "10",
+        "elk.layered.spacing.edgeEdgeBetweenLayers": "8",
+        "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+        "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+        "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES"
+      },
+      children: data.nodes
+        .filter(function (node) { return visibleNodes.has(node.id); })
+        .map(function (node) {
+          const size = elkNodeSize(node);
+          return {
+            id: node.id,
+            width: size.width,
+            height: size.height,
+            layoutOptions: {
+              "elk.portConstraints": "FIXED_SIDE"
+            }
+          };
+        }),
+      edges: visibleEdges.map(function (edge) {
+        return {
+          id: edge.id,
+          sources: [edge.from],
+          targets: [edge.to],
+          labels: [
+            {
+              text: compactEdgeTag(edge.id) + polarityLabel(edge.polarity),
+              width: 36,
+              height: 14
+            }
+          ]
+        };
+      })
+    };
+  }
+
+  function createElkSvg(data, layout) {
+    const padding = ELK_MAP.padding;
+    const titleHeight = ELK_MAP.titleHeight;
+    const width = Math.max(ELK_MAP.minWidth, Math.ceil((layout.width || 0) + padding * 2));
+    const height = Math.max(ELK_MAP.minHeight, Math.ceil((layout.height || 0) + padding * 2 + titleHeight));
+    const svg = svgElement("svg", {
+      xmlns: "http://www.w3.org/2000/svg",
+      viewBox: "0 0 " + width + " " + height,
+      preserveAspectRatio: "xMidYMid meet"
+    });
+
+    svg.appendChild(svgElement("rect", {
+      x: 0,
+      y: 0,
+      width: width,
+      height: height,
+      fill: "#ffffff"
+    }));
+    appendDefs(svg);
+    appendElkTitle(svg, data, width);
+
+    const graphGroup = svgElement("g", {
+      transform: "translate(" + padding + " " + (padding + titleHeight) + ")"
+    });
+    appendElkEdges(graphGroup, data, layout);
+    appendElkNodes(graphGroup, data, layout);
+    svg.appendChild(graphGroup);
+    appendElkLegend(svg, data, padding, height - padding - 26);
+    return svg;
+  }
+
+  function appendElkTitle(svg, data, width) {
+    const title = svgElement("text", {
+      class: "issue-map-title",
+      x: width / 2,
+      y: 24,
+      "text-anchor": "middle",
+      "font-size": 21,
+      "font-weight": 700,
+      fill: "#202723"
+    });
+    title.textContent = data.title || "課題構造マップ";
+    svg.appendChild(title);
+
+    const subtitleParts = [];
+    if (data.scope && data.scope.theme) subtitleParts.push(data.scope.theme);
+    if (data.scope && data.scope.geography) subtitleParts.push(data.scope.geography);
+    if (subtitleParts.length > 0) {
+      const subtitle = svgElement("text", {
+        class: "issue-map-title",
+        x: width / 2,
+        y: 46,
+        "text-anchor": "middle",
+        "font-size": 11,
+        fill: "#66706a"
+      });
+      subtitle.textContent = subtitleParts.join(" / ");
+      svg.appendChild(subtitle);
+    }
+  }
+
+  function appendElkEdges(group, data, layout) {
+    const edgeById = indexById(data.edges);
+    const nodeById = indexById(data.nodes);
+    const perspectiveById = indexById(data.perspectives);
+    const halosLayer = svgElement("g", { class: "issue-edge-halos" });
+    const edgesLayer = svgElement("g", { class: "issue-edges" });
+    const isAllMode = IssueMapState.edgeDisplayMode === "all";
+
+    (layout.edges || []).forEach(function (layoutEdge) {
+      const edge = edgeById[layoutEdge.id];
+      if (!edge) return;
+      const section = layoutEdge.sections && layoutEdge.sections[0];
+      if (!section) return;
+      const points = elkEdgePoints(section);
+      const path = pointsToPath(points);
+      const sourceNode = nodeById[edge.from];
+      const perspective = sourceNode ? perspectiveById[sourceNode.perspective] : null;
+      const color = edgeColor(edge, perspective);
+      const markerId = edge.polarity === "-" ? "issue-arrow-negative" : edge.polarity === "unknown" ? "issue-arrow-unknown" : "issue-arrow-positive";
+
+      halosLayer.appendChild(svgElement("path", {
+        id: "edge_halo_" + edge.id,
+        class: "issue-edge-halo",
+        d: path,
+        fill: "none",
+        stroke: "#ffffff",
+        "stroke-width": isAllMode ? 4.2 : 5.4,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        opacity: 0.8
+      }));
+
+      const edgeGroup = svgElement("g", {
+        id: "edge_" + edge.id,
+        class: "edge"
+      });
+      edgeGroup.appendChild(svgElement("path", {
+        class: "issue-edge-path",
+        d: path,
+        fill: "none",
+        stroke: color,
+        "stroke-width": isAllMode ? edge.confidence === "high" ? 1.9 : 1.55 : edge.confidence === "high" ? 2.45 : 2,
+        "stroke-dasharray": edge.confidence === "low" || edge.polarity === "unknown" ? "6 5" : "",
+        "marker-end": "url(#" + markerId + ")",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        opacity: isAllMode ? edge.confidence === "low" ? 0.52 : 0.74 : edge.confidence === "low" ? 0.86 : 0.98
+      }));
+      appendEdgeMidTag(edgeGroup, {
+        edge: edge,
+        labelPoint: elkLabelPoint(layoutEdge, points),
+        tag: compactEdgeTag(edge.id),
+        color: color
+      });
+      edgesLayer.appendChild(edgeGroup);
+    });
+
+    group.appendChild(halosLayer);
+    group.appendChild(edgesLayer);
+  }
+
+  function appendElkNodes(group, data, layout) {
+    const nodeById = indexById(data.nodes);
+    const perspectiveById = indexById(data.perspectives);
+    const nodesLayer = svgElement("g", { class: "issue-nodes" });
+
+    (layout.children || []).forEach(function (layoutNode) {
+      const node = nodeById[layoutNode.id];
+      if (!node) return;
+      const perspective = perspectiveById[node.perspective];
+      const color = normalizeColor(perspective && perspective.color, "#7d8790");
+      const placement = {
+        id: node.id,
+        x: layoutNode.x,
+        y: layoutNode.y,
+        cx: layoutNode.x + layoutNode.width / 2,
+        cy: layoutNode.y + layoutNode.height / 2,
+        width: layoutNode.width,
+        height: layoutNode.height
+      };
+      const nodeGroup = svgElement("g", {
+        id: "node_" + node.id,
+        class: "node"
+      });
+      nodeGroup.appendChild(svgElement("rect", {
+        class: "issue-node-box",
+        x: placement.x,
+        y: placement.y,
+        width: placement.width,
+        height: placement.height,
+        rx: 8,
+        fill: nodeFillColor(node, color),
+        stroke: color,
+        "stroke-width": node.status === "supported" ? 2 : 1.35
+      }));
+      appendNodeIdBadge(nodeGroup, node, placement, color);
+      appendNodeLabel(nodeGroup, node, placement);
+      nodesLayer.appendChild(nodeGroup);
+    });
+
+    group.appendChild(nodesLayer);
+  }
+
+  function appendElkLegend(svg, data, x, y) {
+    if (!data.perspectives || data.perspectives.length === 0) return;
+    const group = svgElement("g", { class: "issue-map-legend" });
+    let cursorX = x;
+    data.perspectives.forEach(function (perspective) {
+      const label = perspective.label || perspective.id;
+      const color = normalizeColor(perspective.color, "#7d8790");
+      const width = Math.max(72, Array.from(label).length * 12 + 32);
+      group.appendChild(svgElement("rect", {
+        x: cursorX,
+        y: y - 15,
+        width: 12,
+        height: 12,
+        rx: 2,
+        fill: color
+      }));
+      const text = svgElement("text", {
+        x: cursorX + 18,
+        y: y - 5,
+        "font-size": 12,
+        fill: "#3b4540"
+      });
+      text.textContent = label;
+      group.appendChild(text);
+      cursorX += width;
+    });
+    svg.appendChild(group);
+  }
+
+  function elkNodeSize(node) {
+    const lineCount = wrapLabelForSvg(node.label || node.id, 10, 2).length;
+    return {
+      width: ELK_MAP.nodeWidth,
+      height: Math.max(ELK_MAP.minNodeHeight, 24 + lineCount * 16)
+    };
+  }
+
+  function elkEdgePoints(section) {
+    return [section.startPoint]
+      .concat(section.bendPoints || [])
+      .concat([section.endPoint])
+      .map(function (point) {
+        return {
+          x: Math.round(point.x * 10) / 10,
+          y: Math.round(point.y * 10) / 10
+        };
+      });
+  }
+
+  function elkLabelPoint(layoutEdge, points) {
+    const label = layoutEdge.labels && layoutEdge.labels[0];
+    if (label && Number.isFinite(label.x) && Number.isFinite(label.y)) {
+      return {
+        x: label.x + (label.width || 0) / 2,
+        y: label.y + (label.height || 0) / 2
+      };
+    }
+    return routeLabelPoint(points);
+  }
+
   function createSlideSvg(data, visibleNodes) {
     const svg = svgElement("svg", {
       xmlns: "http://www.w3.org/2000/svg",
@@ -783,8 +1081,8 @@
           to: to,
           fromSide: sides.fromSide,
           toSide: sides.toSide
-        };
-      });
+      };
+    });
 
     if (IssueMapState.edgeDisplayMode === "all") {
       return routeOverviewEdges(visibleEdges);

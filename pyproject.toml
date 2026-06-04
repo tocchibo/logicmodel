@@ -1,0 +1,9 @@
+[project]
+name = "logicmodel"
+version = "0.1.0"
+description = "Static logic model editor served locally with uv-managed Python."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+package = false

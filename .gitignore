@@ -34,6 +34,15 @@ Pipfile
 Pipfile.lock
 .venv/
 
+# Python caches and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
 # Development tools
 .mcp.json
 .serena/
+.claude/

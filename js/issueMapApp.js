@@ -24,8 +24,12 @@
     minHeight: 720,
     padding: 24,
     titleHeight: 52,
-    nodeWidth: 138,
-    minNodeHeight: 48
+    nodeWidth: 154,
+    minNodeHeight: 54,
+    labelFontSize: 13,
+    labelLineHeight: 15,
+    labelMaxLines: 3,
+    labelPaddingX: 14
   };
 
   const TYPE_LABELS = {
@@ -563,14 +567,7 @@
         return {
           id: edge.id,
           sources: [edge.from],
-          targets: [edge.to],
-          labels: [
-            {
-              text: compactEdgeTag(edge.id) + polarityLabel(edge.polarity),
-              width: 36,
-              height: 14
-            }
-          ]
+          targets: [edge.to]
         };
       })
     };
@@ -685,12 +682,6 @@
         "stroke-linejoin": "round",
         opacity: isAllMode ? edge.confidence === "low" ? 0.52 : 0.74 : edge.confidence === "low" ? 0.86 : 0.98
       }));
-      appendEdgeMidTag(edgeGroup, {
-        edge: edge,
-        labelPoint: elkLabelPoint(layoutEdge, points),
-        tag: compactEdgeTag(edge.id),
-        color: color
-      });
       edgesLayer.appendChild(edgeGroup);
     });
 
@@ -732,7 +723,6 @@
         stroke: color,
         "stroke-width": node.status === "supported" ? 2 : 1.35
       }));
-      appendNodeIdBadge(nodeGroup, node, placement, color);
       appendNodeLabel(nodeGroup, node, placement);
       nodesLayer.appendChild(nodeGroup);
     });
@@ -770,10 +760,15 @@
   }
 
   function elkNodeSize(node) {
-    const lineCount = wrapLabelForSvg(node.label || node.id, 10, 2).length;
+    const lines = wrapLabelForNode(node.label || node.id, {
+      width: ELK_MAP.nodeWidth,
+      fontSize: ELK_MAP.labelFontSize,
+      paddingX: ELK_MAP.labelPaddingX,
+      maxLines: ELK_MAP.labelMaxLines
+    });
     return {
       width: ELK_MAP.nodeWidth,
-      height: Math.max(ELK_MAP.minNodeHeight, 24 + lineCount * 16)
+      height: Math.max(ELK_MAP.minNodeHeight, 18 + lines.length * ELK_MAP.labelLineHeight)
     };
   }
 
@@ -835,15 +830,15 @@
     ].forEach(function (marker) {
       const markerNode = svgElement("marker", {
         id: marker.id,
-        markerWidth: 12,
-        markerHeight: 12,
-        refX: 11,
-        refY: 6,
+        markerWidth: 7,
+        markerHeight: 7,
+        refX: 6.4,
+        refY: 3.5,
         orient: "auto",
-        markerUnits: "strokeWidth"
+        markerUnits: "userSpaceOnUse"
       });
       markerNode.appendChild(svgElement("path", {
-        d: "M0,0 L12,6 L0,12 Z",
+        d: "M0,0 L7,3.5 L0,7 Z",
         fill: marker.color
       }));
       defs.appendChild(markerNode);
@@ -1690,8 +1685,15 @@
   }
 
   function appendNodeLabel(group, node, placement) {
-    const lines = wrapLabelForSvg(node.label || node.id, 12, 2);
-    const lineHeight = 17;
+    const isElkNode = placement.width <= ELK_MAP.nodeWidth + 8;
+    const fontSize = isElkNode ? ELK_MAP.labelFontSize : 15.2;
+    const lineHeight = isElkNode ? ELK_MAP.labelLineHeight : 17;
+    const lines = wrapLabelForNode(node.label || node.id, {
+      width: placement.width,
+      fontSize: fontSize,
+      paddingX: isElkNode ? ELK_MAP.labelPaddingX : 18,
+      maxLines: isElkNode ? ELK_MAP.labelMaxLines : 2
+    });
     const firstY = placement.cy - ((lines.length - 1) * lineHeight) / 2 + 5;
     lines.forEach(function (line, index) {
       const text = svgElement("text", {
@@ -1699,7 +1701,7 @@
         x: placement.cx,
         y: firstY + index * lineHeight,
         "text-anchor": "middle",
-        "font-size": lines.length > 1 ? 15.2 : 16.5,
+        "font-size": lines.length > 1 ? fontSize : fontSize + 1,
         "font-weight": 700,
         fill: "#202723"
       });
@@ -2373,6 +2375,42 @@
     const clipped = manualLines.slice(0, maxLines);
     clipped[maxLines - 1] = clipped[maxLines - 1].replace(/…?$/, "") + "…";
     return clipped;
+  }
+
+  function wrapLabelForNode(value, options) {
+    const width = Number(options.width) || ELK_MAP.nodeWidth;
+    const fontSize = Number(options.fontSize) || ELK_MAP.labelFontSize;
+    const paddingX = Number(options.paddingX) || ELK_MAP.labelPaddingX;
+    const maxLines = Number(options.maxLines) || ELK_MAP.labelMaxLines;
+    const maxUnits = Math.max(4.5, (width - paddingX * 2) / (fontSize * 0.92));
+    const text = String(value || "").replace(/\r\n|\r/g, "\n");
+    const manualLines = text.split("\n").flatMap(function (line) {
+      const result = [];
+      let current = "";
+      let currentUnits = 0;
+      Array.from(line).forEach(function (char) {
+        const units = characterWidthUnits(char);
+        if (current && currentUnits + units > maxUnits) {
+          result.push(current);
+          current = "";
+          currentUnits = 0;
+        }
+        current += char;
+        currentUnits += units;
+      });
+      if (current) result.push(current);
+      return result.length > 0 ? result : [""];
+    });
+    if (manualLines.length <= maxLines) return manualLines;
+    const clipped = manualLines.slice(0, maxLines);
+    clipped[maxLines - 1] = clipped[maxLines - 1].replace(/…?$/, "") + "…";
+    return clipped;
+  }
+
+  function characterWidthUnits(char) {
+    if (/[\u0000-\u007f]/.test(char)) return /\s/.test(char) ? 0.35 : 0.58;
+    if (/[\uff61-\uff9f]/.test(char)) return 0.68;
+    return 1;
   }
 
   function compactEdgeTag(edgeId) {

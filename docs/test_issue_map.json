@@ -1,0 +1,601 @@
+{
+  "schemaVersion": "issue-map/v1",
+  "title": "地方小規模都市の若者流出に関する課題構造マップ",
+  "scope": {
+    "theme": "地方小規模都市の若者流出",
+    "geography": "日本の人口5万人未満の自治体",
+    "targetPopulation": "若者、子育て世帯、地域事業者、自治体",
+    "assumptions": [
+      "人口減少と高齢化は短期には前提条件として扱う",
+      "個別自治体ではなく地方小規模都市に共通しやすい構造を扱う",
+      "このJSONはUI検証用のテストデータであり、根拠は仮説メモとして扱う"
+    ]
+  },
+  "perspectives": [
+    { "id": "work", "label": "仕事", "color": "#2f8f6f" },
+    { "id": "life", "label": "暮らし", "color": "#3b82a0" },
+    { "id": "education", "label": "教育・成長", "color": "#8a8f3a" },
+    { "id": "community", "label": "関係性", "color": "#b36b42" },
+    { "id": "governance", "label": "制度・運営", "color": "#7a6aa8" }
+  ],
+  "nodes": [
+    {
+      "id": "n001",
+      "label": "若者が地域外へ流出する",
+      "type": "issue",
+      "perspective": "community",
+      "layer": "event",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n002",
+      "label": "地域内の選べる職種が少ない",
+      "type": "issue",
+      "perspective": "work",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n003",
+      "label": "賃金水準が都市部より低い",
+      "type": "issue",
+      "perspective": "work",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n004",
+      "label": "新規事業が生まれにくい",
+      "type": "structural_factor",
+      "perspective": "work",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev002"]
+    },
+    {
+      "id": "n005",
+      "label": "事業承継の担い手が不足している",
+      "type": "issue",
+      "perspective": "work",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev002"]
+    },
+    {
+      "id": "n006",
+      "label": "地域企業の採用発信が弱い",
+      "type": "structural_factor",
+      "perspective": "work",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev003"]
+    },
+    {
+      "id": "n007",
+      "label": "地域で働く将来像が見えにくい",
+      "type": "issue",
+      "perspective": "education",
+      "layer": "mental_model",
+      "status": "hypothesis",
+      "evidenceIds": ["ev003"]
+    },
+    {
+      "id": "n008",
+      "label": "高等教育機会が地域外に偏る",
+      "type": "structural_factor",
+      "perspective": "education",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n009",
+      "label": "進学を機に地域外へ移る",
+      "type": "issue",
+      "perspective": "education",
+      "layer": "event",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n010",
+      "label": "地域内の移動手段が限られる",
+      "type": "issue",
+      "perspective": "life",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev004"]
+    },
+    {
+      "id": "n011",
+      "label": "生活サービスへのアクセスが悪い",
+      "type": "issue",
+      "perspective": "life",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev004"]
+    },
+    {
+      "id": "n012",
+      "label": "子育てと仕事の両立環境が弱い",
+      "type": "issue",
+      "perspective": "life",
+      "layer": "structure",
+      "status": "needs_review",
+      "evidenceIds": ["ev005"]
+    },
+    {
+      "id": "n013",
+      "label": "若者向けの居場所が少ない",
+      "type": "issue",
+      "perspective": "community",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev005"]
+    },
+    {
+      "id": "n014",
+      "label": "地域活動の参加者が固定化している",
+      "type": "structural_factor",
+      "perspective": "community",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev005"]
+    },
+    {
+      "id": "n015",
+      "label": "外から来た人が関係性を作りにくい",
+      "type": "issue",
+      "perspective": "community",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev005"]
+    },
+    {
+      "id": "n016",
+      "label": "地域に挑戦しにくい空気がある",
+      "type": "mental_model",
+      "perspective": "community",
+      "layer": "mental_model",
+      "status": "hypothesis",
+      "evidenceIds": ["ev005"]
+    },
+    {
+      "id": "n017",
+      "label": "若者の意見が政策に反映されにくい",
+      "type": "structural_factor",
+      "perspective": "governance",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev006"]
+    },
+    {
+      "id": "n018",
+      "label": "行政施策が部門別に分断される",
+      "type": "structural_factor",
+      "perspective": "governance",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev006"]
+    },
+    {
+      "id": "n019",
+      "label": "地域の魅力が外部に伝わりにくい",
+      "type": "issue",
+      "perspective": "community",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev003"]
+    },
+    {
+      "id": "n020",
+      "label": "移住後の生活イメージが持ちにくい",
+      "type": "issue",
+      "perspective": "life",
+      "layer": "mental_model",
+      "status": "hypothesis",
+      "evidenceIds": ["ev003"]
+    },
+    {
+      "id": "n021",
+      "label": "空き家情報と住まい需要がつながらない",
+      "type": "structural_factor",
+      "perspective": "life",
+      "layer": "structure",
+      "status": "needs_review",
+      "evidenceIds": ["ev004"]
+    },
+    {
+      "id": "n022",
+      "label": "地域内消費が縮小する",
+      "type": "issue",
+      "perspective": "work",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev002"]
+    },
+    {
+      "id": "n023",
+      "label": "公共交通の維持が難しくなる",
+      "type": "issue",
+      "perspective": "life",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev004"]
+    },
+    {
+      "id": "n024",
+      "label": "地域への愛着が育ちにくい",
+      "type": "issue",
+      "perspective": "education",
+      "layer": "mental_model",
+      "status": "hypothesis",
+      "evidenceIds": ["ev005"]
+    },
+    {
+      "id": "n025",
+      "label": "地域の人口が減少する",
+      "type": "assumption",
+      "perspective": "governance",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e001",
+      "from": "n002",
+      "to": "n001",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "選べる職種が少ないほど、希望する仕事を求めて地域外へ移りやすい。"
+    },
+    {
+      "id": "e002",
+      "from": "n003",
+      "to": "n001",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "賃金水準の差は地域外就職を選ぶ理由になりやすい。"
+    },
+    {
+      "id": "e003",
+      "from": "n004",
+      "to": "n002",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "新規事業が少ないと、地域内で選べる仕事の幅が広がりにくい。"
+    },
+    {
+      "id": "e004",
+      "from": "n005",
+      "to": "n004",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "事業承継が進まないと既存事業の縮小や廃業が増え、新規展開も弱くなる。"
+    },
+    {
+      "id": "e005",
+      "from": "n006",
+      "to": "n007",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "地域企業の情報が届かないと、地域で働く具体的な将来像を描きにくい。"
+    },
+    {
+      "id": "e006",
+      "from": "n007",
+      "to": "n001",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "地域で働く将来像がないと、卒業後の地域外流出につながりやすい。"
+    },
+    {
+      "id": "e007",
+      "from": "n008",
+      "to": "n009",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "high",
+      "rationale": "高等教育機会が地域外に偏ると、進学時に転出する必要が生じやすい。"
+    },
+    {
+      "id": "e008",
+      "from": "n009",
+      "to": "n001",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "進学時の転出後に地域外で就職や生活基盤を作ると、戻りにくくなる。"
+    },
+    {
+      "id": "e009",
+      "from": "n010",
+      "to": "n011",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "移動手段が限られると、買い物、医療、余暇などへのアクセスが悪化する。"
+    },
+    {
+      "id": "e010",
+      "from": "n011",
+      "to": "n020",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "生活サービスへのアクセスが悪いと、移住後や定住後の生活イメージが弱くなる。"
+    },
+    {
+      "id": "e011",
+      "from": "n020",
+      "to": "n001",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "生活イメージが持てないことは、定住やUターンの選択を妨げる可能性がある。"
+    },
+    {
+      "id": "e012",
+      "from": "n012",
+      "to": "n001",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "両立環境の弱さは、子育て期の転出や帰還断念につながる可能性がある。"
+    },
+    {
+      "id": "e013",
+      "from": "n013",
+      "to": "n024",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "若者の居場所が少ないと、地域との肯定的な接点が生まれにくい。"
+    },
+    {
+      "id": "e014",
+      "from": "n014",
+      "to": "n013",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "参加者が固定化すると、新しい世代に開かれた居場所が増えにくい。"
+    },
+    {
+      "id": "e015",
+      "from": "n015",
+      "to": "n020",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "関係性を作りにくい地域では、移住後の生活を具体化しにくい。"
+    },
+    {
+      "id": "e016",
+      "from": "n016",
+      "to": "n014",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "挑戦しにくい空気は、地域活動の担い手交代を妨げる可能性がある。"
+    },
+    {
+      "id": "e017",
+      "from": "n017",
+      "to": "n013",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "若者の意見が政策に反映されにくいと、若者向けの場や機会が増えにくい。"
+    },
+    {
+      "id": "e018",
+      "from": "n018",
+      "to": "n012",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "部門別の施策分断は、仕事、保育、移動などを横断した両立環境づくりを難しくする。"
+    },
+    {
+      "id": "e019",
+      "from": "n018",
+      "to": "n017",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "施策が分断されると、若者の意見を継続的に扱う仕組みが弱くなりやすい。"
+    },
+    {
+      "id": "e020",
+      "from": "n019",
+      "to": "n020",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "地域の魅力が伝わらないと、移住後の具体的な生活像を持ちにくい。"
+    },
+    {
+      "id": "e021",
+      "from": "n006",
+      "to": "n019",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "企業や仕事の情報発信が弱いと、地域全体の魅力も伝わりにくい。"
+    },
+    {
+      "id": "e022",
+      "from": "n021",
+      "to": "n020",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "住まい情報にアクセスしにくいと、移住後の生活設計がしにくい。"
+    },
+    {
+      "id": "e023",
+      "from": "n001",
+      "to": "n025",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "high",
+      "rationale": "若者の流出は出生、就業、地域活動の担い手減少を通じて人口減少を進める。"
+    },
+    {
+      "id": "e024",
+      "from": "n025",
+      "to": "n022",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "人口が減ると地域内の消費者数が減り、地域内消費が縮小しやすい。"
+    },
+    {
+      "id": "e025",
+      "from": "n022",
+      "to": "n004",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "地域内消費が縮小すると、新規事業の採算見通しが立ちにくくなる。"
+    },
+    {
+      "id": "e026",
+      "from": "n022",
+      "to": "n005",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "地域内消費の縮小は既存事業の収益を弱め、事業承継の魅力を下げる。"
+    },
+    {
+      "id": "e027",
+      "from": "n025",
+      "to": "n023",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "人口が減ると公共交通の利用者が減り、維持が難しくなる。"
+    },
+    {
+      "id": "e028",
+      "from": "n023",
+      "to": "n010",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "公共交通の維持が難しくなると、地域内の移動手段がさらに限られる。"
+    },
+    {
+      "id": "e029",
+      "from": "n024",
+      "to": "n001",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "地域への愛着が弱いと、地域外へ出た後に戻る動機が弱くなる可能性がある。"
+    },
+    {
+      "id": "e030",
+      "from": "n001",
+      "to": "n014",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "medium",
+      "rationale": "若者が減ると地域活動の参加者が高齢層や既存メンバーに偏りやすい。"
+    },
+    {
+      "id": "e031",
+      "from": "n025",
+      "to": "n018",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "人口減少下では行政資源が制約され、部門横断の余力が弱くなる可能性がある。"
+    },
+    {
+      "id": "e032",
+      "from": "n025",
+      "to": "n003",
+      "relation": "causes",
+      "polarity": "+",
+      "confidence": "low",
+      "rationale": "地域経済の規模が縮むと、賃金を上げる余力が弱くなる可能性がある。"
+    }
+  ],
+  "loops": [
+    {
+      "id": "l001",
+      "label": "仕事の選択肢縮小ループ",
+      "type": "reinforcing",
+      "edgeIds": ["e001", "e023", "e024", "e025", "e003"]
+    },
+    {
+      "id": "l002",
+      "label": "生活利便性低下ループ",
+      "type": "reinforcing",
+      "edgeIds": ["e023", "e027", "e028", "e009", "e010", "e011"]
+    },
+    {
+      "id": "l003",
+      "label": "地域参加固定化ループ",
+      "type": "reinforcing",
+      "edgeIds": ["e030", "e014", "e013", "e029"]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev001",
+      "title": "テスト用仮説メモ: 人口移動と進学・就職",
+      "url": "",
+      "note": "UI検証用の仮説メモ。実運用では公的統計や自治体資料で確認する。"
+    },
+    {
+      "id": "ev002",
+      "title": "テスト用仮説メモ: 地域経済と事業承継",
+      "url": "",
+      "note": "UI検証用の仮説メモ。実運用では商工統計や地域企業調査で確認する。"
+    },
+    {
+      "id": "ev003",
+      "title": "テスト用仮説メモ: 採用発信と地域イメージ",
+      "url": "",
+      "note": "UI検証用の仮説メモ。実運用では求人情報、企業ヒアリング、移住相談記録で確認する。"
+    },
+    {
+      "id": "ev004",
+      "title": "テスト用仮説メモ: 交通・住まい・生活アクセス",
+      "url": "",
+      "note": "UI検証用の仮説メモ。実運用では公共交通、空き家、生活サービスのデータで確認する。"
+    },
+    {
+      "id": "ev005",
+      "title": "テスト用仮説メモ: 若者の居場所と地域参加",
+      "url": "",
+      "note": "UI検証用の仮説メモ。実運用ではワークショップ記録や住民アンケートで確認する。"
+    },
+    {
+      "id": "ev006",
+      "title": "テスト用仮説メモ: 政策形成と部門横断",
+      "url": "",
+      "note": "UI検証用の仮説メモ。実運用では総合計画、地方創生計画、庁内ヒアリングで確認する。"
+    }
+  ],
+  "layout": {
+    "engine": "auto",
+    "positions": {},
+    "pinnedNodeIds": []
+  }
+}

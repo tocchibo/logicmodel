@@ -535,26 +535,6 @@
       "rationale": "地域経済の規模が縮むと、賃金を上げる余力が弱くなる可能性がある。"
     }
   ],
-  "loops": [
-    {
-      "id": "l001",
-      "label": "仕事の選択肢縮小ループ",
-      "type": "reinforcing",
-      "edgeIds": ["e001", "e023", "e024", "e025", "e003"]
-    },
-    {
-      "id": "l002",
-      "label": "生活利便性低下ループ",
-      "type": "reinforcing",
-      "edgeIds": ["e023", "e027", "e028", "e009", "e010", "e011"]
-    },
-    {
-      "id": "l003",
-      "label": "地域参加固定化ループ",
-      "type": "reinforcing",
-      "edgeIds": ["e030", "e014", "e013", "e029"]
-    }
-  ],
   "evidence": [
     {
       "id": "ev001",

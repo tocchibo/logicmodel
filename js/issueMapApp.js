@@ -7,6 +7,7 @@
   const NODE_STATUSES = ["hypothesis", "supported", "needs_review"];
   const EDGE_POLARITIES = ["+", "-", "unknown"];
   const EDGE_CONFIDENCES = ["high", "medium", "low"];
+  const EDGE_DEFAULT_COLOR = "#727b76";
   const SLIDE = {
     width: 1280,
     height: 720,
@@ -56,9 +57,7 @@
   const IssueMapState = {
     data: null,
     selected: null,
-    activeLoopId: null,
-    visiblePerspectives: new Set(),
-    edgeDisplayMode: "all"
+    visiblePerspectives: new Set()
   };
 
   const els = {};
@@ -83,7 +82,6 @@
     els.inspector = document.getElementById("issueInspector");
     els.selectionLabel = document.getElementById("issueSelectionLabel");
     els.relationList = document.getElementById("issueRelationList");
-    els.loopList = document.getElementById("issueLoopList");
     els.evidenceList = document.getElementById("issueEvidenceList");
     els.correctionInstructions = document.getElementById("issueCorrectionInstructions");
     els.fileInput = document.getElementById("issueMapFileInput");
@@ -100,13 +98,6 @@
     });
     document.getElementById("copyIssueMapButton").addEventListener("click", copyIssueMapJson);
     document.getElementById("copyIssueCorrectionButton").addEventListener("click", copyCorrectionPrompt);
-    document.getElementById("issueEdgeDisplayMode").addEventListener("change", function (event) {
-      IssueMapState.edgeDisplayMode = event.target.value;
-      if (IssueMapState.edgeDisplayMode === "loops" && IssueMapState.data && !IssueMapState.activeLoopId && IssueMapState.data.loops[0]) {
-        IssueMapState.activeLoopId = IssueMapState.data.loops[0].id;
-      }
-      renderIssueMap();
-    });
     document.getElementById("addIssueNodeButton").addEventListener("click", function () {
       ensureEditableData();
       IssueMapState.selected = { type: "newNode" };
@@ -121,7 +112,6 @@
     });
     document.getElementById("clearIssueSelectionButton").addEventListener("click", function () {
       IssueMapState.selected = null;
-      IssueMapState.activeLoopId = null;
       renderIssueMap();
     });
     els.fileInput.addEventListener("change", handleFileLoad);
@@ -152,12 +142,10 @@
     if (!raw) {
       IssueMapState.data = null;
       IssueMapState.selected = null;
-      IssueMapState.activeLoopId = null;
       showEmptyGraph();
       showValidation({ errors: [], warnings: [] });
       renderInspector();
       renderRelationList();
-      renderLoopList();
       renderEvidenceList();
       updateMeta();
       updateSelectionLabel();
@@ -183,9 +171,6 @@
 
     IssueMapState.data = normalizeIssueMap(parsed);
     ensurePerspectiveFilters(IssueMapState.data);
-    IssueMapState.activeLoopId = IssueMapState.edgeDisplayMode === "loops" && IssueMapState.data.loops[0]
-      ? IssueMapState.data.loops[0].id
-      : null;
     await renderIssueMap();
     setStatus(validation.warnings.length > 0 ? "警告あり" : "表示中");
   }
@@ -199,7 +184,6 @@
     updateMeta();
     renderFilterBar();
     renderRelationList();
-    renderLoopList();
     renderEvidenceList();
     renderInspector();
     updateSelectionLabel();
@@ -218,7 +202,6 @@
       els.output.appendChild(svg);
       attachSvgEventHandlers();
       markSelection();
-      markLoop();
     } catch (error) {
       els.output.innerHTML = '<div class="issue-map-empty">描画エラー</div>';
       showValidation({ errors: ["SVG描画に失敗しました: " + error.message], warnings: [] });
@@ -239,13 +222,11 @@
     if (!Array.isArray(data.perspectives)) errors.push("perspectives は配列にしてください。");
     if (!Array.isArray(data.nodes)) errors.push("nodes は配列にしてください。");
     if (!Array.isArray(data.edges)) errors.push("edges は配列にしてください。");
-    if (!Array.isArray(data.loops)) errors.push("loops は配列にしてください。");
     if (!Array.isArray(data.evidence)) errors.push("evidence は配列にしてください。");
     if (errors.length > 0) return { errors, warnings };
 
     const perspectiveIds = collectIds(data.perspectives, "perspective", errors);
     const nodeIds = collectIds(data.nodes, "node", errors);
-    const edgeIds = collectIds(data.edges, "edge", errors);
     const evidenceIds = collectIds(data.evidence, "evidence", errors);
 
     if (data.nodes.length < 20) {
@@ -283,20 +264,10 @@
     data.edges.forEach(function (edge) {
       if (!nodeIds.has(edge.from)) errors.push("edge.from が存在しません: " + edge.id + " / " + edge.from);
       if (!nodeIds.has(edge.to)) errors.push("edge.to が存在しません: " + edge.id + " / " + edge.to);
-      if (edge.from === edge.to) warnings.push("自己ループがあります: " + edge.id);
+      if (edge.from === edge.to) warnings.push("自己参照エッジがあります: " + edge.id);
       if (edge.relation !== "causes") warnings.push("relation は causes が推奨です: " + edge.id);
       if (!EDGE_POLARITIES.includes(edge.polarity)) errors.push("未対応の polarity: " + edge.id + " / " + edge.polarity);
       if (!EDGE_CONFIDENCES.includes(edge.confidence)) errors.push("未対応の confidence: " + edge.id + " / " + edge.confidence);
-    });
-
-    data.loops.forEach(function (loop) {
-      if (!Array.isArray(loop.edgeIds)) {
-        errors.push("loop.edgeIds は配列にしてください: " + loop.id);
-        return;
-      }
-      loop.edgeIds.forEach(function (edgeId) {
-        if (!edgeIds.has(edgeId)) errors.push("loop.edgeIds が存在しません: " + loop.id + " / " + edgeId);
-      });
     });
 
     return { errors, warnings };
@@ -323,7 +294,7 @@
     normalized.perspectives = normalized.perspectives || [];
     normalized.nodes = normalized.nodes || [];
     normalized.edges = normalized.edges || [];
-    normalized.loops = normalized.loops || [];
+    delete normalized.loops;
     normalized.evidence = normalized.evidence || [];
     normalized.layout = normalized.layout || { engine: "auto", positions: {}, pinnedNodeIds: [] };
     normalized.layout.engine = normalized.layout.engine || "auto";
@@ -348,7 +319,6 @@
       ],
       nodes: [],
       edges: [],
-      loops: [],
       evidence: [],
       layout: {
         engine: "auto",
@@ -437,33 +407,26 @@
   }
 
   function buildEdgeAttrs(edge, color) {
-    const style = edge.confidence === "low" || edge.polarity === "unknown" ? "dashed" : "solid";
-    const penWidth = edge.confidence === "high" ? "1.8" : "1.2";
+    const style = "solid";
+    const penWidth = "1.2";
     const polarityLabel = edge.polarity === "unknown" ? "?" : edge.polarity;
     return [
       'id="' + dotEscape("edge_" + edge.id) + '"',
       'label="' + dotEscape(polarityLabel) + '"',
       'tooltip="' + dotEscape(edge.rationale || edge.id) + '"',
-      'color="' + color + '"',
-      'fontcolor="' + color + '"',
+      'color="' + EDGE_DEFAULT_COLOR + '"',
+      'fontcolor="' + EDGE_DEFAULT_COLOR + '"',
       'style="' + style + '"',
       "penwidth=" + penWidth
     ];
   }
 
   function nodeFillColor(node, perspectiveColor) {
-    if (node.type === "assumption") return "#f0f1ed";
-    if (node.type === "external_factor") return "#eef7fb";
-    if (node.type === "mental_model") return "#fff4e9";
-    if (node.type === "structural_factor") return mixWithWhite(perspectiveColor, 0.78);
-    if (node.status === "needs_review") return "#fff8df";
-    return "#ffffff";
+    return mixWithWhite(perspectiveColor, 0.84);
   }
 
   function edgeColor(edge, perspective) {
-    if (edge.polarity === "-") return "#b36b42";
-    if (edge.polarity === "unknown") return "#8b8f93";
-    return normalizeColor(perspective && perspective.color, "#3b82a0");
+    return EDGE_DEFAULT_COLOR;
   }
 
   function nodeTooltip(node) {
@@ -636,11 +599,8 @@
 
   function appendElkEdges(group, data, layout) {
     const edgeById = indexById(data.edges);
-    const nodeById = indexById(data.nodes);
-    const perspectiveById = indexById(data.perspectives);
     const halosLayer = svgElement("g", { class: "issue-edge-halos" });
     const edgesLayer = svgElement("g", { class: "issue-edges" });
-    const isAllMode = IssueMapState.edgeDisplayMode === "all";
 
     (layout.edges || []).forEach(function (layoutEdge) {
       const edge = edgeById[layoutEdge.id];
@@ -649,10 +609,6 @@
       if (!section) return;
       const points = elkEdgePoints(section);
       const path = pointsToPath(points);
-      const sourceNode = nodeById[edge.from];
-      const perspective = sourceNode ? perspectiveById[sourceNode.perspective] : null;
-      const color = edgeColor(edge, perspective);
-      const markerId = edge.polarity === "-" ? "issue-arrow-negative" : edge.polarity === "unknown" ? "issue-arrow-unknown" : "issue-arrow-positive";
 
       halosLayer.appendChild(svgElement("path", {
         id: "edge_halo_" + edge.id,
@@ -660,10 +616,10 @@
         d: path,
         fill: "none",
         stroke: "#ffffff",
-        "stroke-width": isAllMode ? 4.2 : 5.4,
+        "stroke-width": 4.8,
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
-        opacity: 0.8
+        opacity: 0.72
       }));
 
       const edgeGroup = svgElement("g", {
@@ -674,13 +630,12 @@
         class: "issue-edge-path",
         d: path,
         fill: "none",
-        stroke: color,
-        "stroke-width": isAllMode ? edge.confidence === "high" ? 1.9 : 1.55 : edge.confidence === "high" ? 2.45 : 2,
-        "stroke-dasharray": edge.confidence === "low" || edge.polarity === "unknown" ? "6 5" : "",
-        "marker-end": "url(#" + markerId + ")",
+        stroke: EDGE_DEFAULT_COLOR,
+        "stroke-width": 1.55,
+        "marker-end": "url(#issue-arrow-neutral)",
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
-        opacity: isAllMode ? edge.confidence === "low" ? 0.52 : 0.74 : edge.confidence === "low" ? 0.86 : 0.98
+        opacity: 0.72
       }));
       edgesLayer.appendChild(edgeGroup);
     });
@@ -823,10 +778,11 @@
   function appendDefs(svg) {
     const defs = svgElement("defs");
     [
-      { id: "issue-arrow-positive", color: "#2f8f6f" },
-      { id: "issue-arrow-negative", color: "#b36b42" },
-      { id: "issue-arrow-unknown", color: "#8b8f93" },
-      { id: "issue-arrow-selected", color: "#b84a4a" }
+      { id: "issue-arrow-neutral", color: EDGE_DEFAULT_COLOR },
+      { id: "issue-arrow-positive", color: EDGE_DEFAULT_COLOR },
+      { id: "issue-arrow-negative", color: EDGE_DEFAULT_COLOR },
+      { id: "issue-arrow-unknown", color: EDGE_DEFAULT_COLOR },
+      { id: "issue-arrow-selected", color: "#3f4743" }
     ].forEach(function (marker) {
       const markerNode = svgElement("marker", {
         id: marker.id,
@@ -996,25 +952,7 @@
 
   function appendEdges(svg, data, layout) {
     const routedEdges = routeVisibleEdges(data, layout);
-    const isAllMode = IssueMapState.edgeDisplayMode === "all";
-    const halosLayer = svgElement("g", { class: "issue-edge-halos" });
     const edgesLayer = svgElement("g", { class: "issue-edges" });
-
-    if (!isAllMode) {
-      routedEdges.forEach(function (route) {
-        halosLayer.appendChild(svgElement("path", {
-          id: "edge_halo_" + route.edge.id,
-          class: "issue-edge-halo",
-          d: route.path,
-          fill: "none",
-          stroke: "#ffffff",
-          "stroke-width": route.edge.confidence === "high" ? 5.2 : 4.6,
-          "stroke-linecap": "round",
-          "stroke-linejoin": "round",
-          opacity: 0.76
-        }));
-      });
-    }
 
     routedEdges.forEach(function (route) {
       const edge = route.edge;
@@ -1027,35 +965,16 @@
         d: route.path,
         fill: "none",
         stroke: route.color,
-        "stroke-width": isAllMode ? edge.confidence === "high" ? 1.25 : 1 : edge.confidence === "high" ? 2.25 : 1.75,
-        "stroke-dasharray": edge.confidence === "low" || edge.polarity === "unknown" ? "6 5" : "",
+        "stroke-width": 1.25,
         "marker-end": "url(#" + route.markerId + ")",
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
-        opacity: isAllMode ? edge.confidence === "low" ? 0.35 : 0.46 : edge.confidence === "low" ? 0.82 : 0.96
+        opacity: 0.46
       }));
-      if (!isAllMode && edge.polarity !== "+") {
-        const label = svgElement("text", {
-          class: "issue-edge-label",
-          x: route.labelPoint.x,
-          y: route.labelPoint.y - 5,
-          "text-anchor": "middle",
-          "font-size": 13,
-          "font-weight": 700,
-          fill: route.color
-        });
-        label.textContent = edge.polarity === "unknown" ? "?" : edge.polarity;
-        edgeGroup.appendChild(label);
-      }
-      if (isAllMode) {
-        appendEdgeMidTag(edgeGroup, route);
-      } else {
-        appendEdgeEndpointTags(edgeGroup, route);
-      }
+      appendEdgeMidTag(edgeGroup, route);
       edgesLayer.appendChild(edgeGroup);
     });
 
-    if (!isAllMode) svg.appendChild(halosLayer);
     svg.appendChild(edgesLayer);
     appendRelationLegend(svg, data, routedEdges);
   }
@@ -1079,9 +998,7 @@
       };
     });
 
-    if (IssueMapState.edgeDisplayMode === "all") {
-      return routeOverviewEdges(visibleEdges);
-    }
+    return routeOverviewEdges(visibleEdges);
 
     const portCounts = {};
     visibleEdges.forEach(function (spec) {
@@ -1112,8 +1029,6 @@
         layout
       );
       addRouteUsage(routeUsage, points);
-      const color = spec.edge.polarity === "-" ? "#b36b42" : spec.edge.polarity === "unknown" ? "#8b8f93" : "#2f8f6f";
-      const markerId = spec.edge.polarity === "-" ? "issue-arrow-negative" : spec.edge.polarity === "unknown" ? "issue-arrow-unknown" : "issue-arrow-positive";
       routes.push({
         edge: spec.edge,
         points: points,
@@ -1122,8 +1037,8 @@
         startPoint: points[0],
         endPoint: points[points.length - 1],
         tag: compactEdgeTag(spec.edge.id),
-        color: color,
-        markerId: markerId
+        color: EDGE_DEFAULT_COLOR,
+        markerId: "issue-arrow-neutral"
       });
     });
     return routes;
@@ -1146,8 +1061,6 @@
         x: (start.x + end.x) / 2 - dy / len * bend,
         y: (start.y + end.y) / 2 + dx / len * bend
       };
-      const color = edge.polarity === "-" ? "#b36b42" : edge.polarity === "unknown" ? "#8b8f93" : "#2f8f6f";
-      const markerId = edge.polarity === "-" ? "issue-arrow-negative" : edge.polarity === "unknown" ? "issue-arrow-unknown" : "issue-arrow-positive";
       return {
         edge: edge,
         points: [start, control, end],
@@ -1156,8 +1069,8 @@
         startPoint: start,
         endPoint: end,
         tag: compactEdgeTag(edge.id),
-        color: color,
-        markerId: markerId
+        color: EDGE_DEFAULT_COLOR,
+        markerId: "issue-arrow-neutral"
       };
     });
   }
@@ -1269,32 +1182,7 @@
   }
 
   function getRenderableEdgeIds(data) {
-    if (IssueMapState.edgeDisplayMode === "all") {
-      return new Set(data.edges.map(function (edge) { return edge.id; }));
-    }
-
-    if (IssueMapState.edgeDisplayMode === "selected") {
-      if (!IssueMapState.selected) return new Set();
-      if (IssueMapState.selected.type === "edge") return new Set([IssueMapState.selected.id]);
-      if (IssueMapState.selected.type === "node") {
-        return new Set(data.edges
-          .filter(function (edge) {
-            return edge.from === IssueMapState.selected.id || edge.to === IssueMapState.selected.id;
-          })
-          .map(function (edge) { return edge.id; }));
-      }
-      return new Set();
-    }
-
-    if (IssueMapState.edgeDisplayMode === "loops") {
-      const activeLoop = data.loops.find(function (item) {
-        return item.id === IssueMapState.activeLoopId;
-      }) || data.loops[0];
-      if (activeLoop) return new Set(activeLoop.edgeIds);
-      return new Set();
-    }
-
-    return new Set();
+    return new Set(data.edges.map(function (edge) { return edge.id; }));
   }
 
   function chooseEdgeSides(from, to) {
@@ -1733,10 +1621,6 @@
 
   function selectItem(type, id) {
     IssueMapState.selected = { type: type, id: id };
-    if (IssueMapState.edgeDisplayMode === "selected") {
-      renderIssueMap();
-      return;
-    }
     renderInspector();
     renderRelationList();
     renderEvidenceList();
@@ -1746,6 +1630,7 @@
 
   function markSelection() {
     els.output.querySelectorAll(".issue-map-selected").forEach(function (item) {
+      resetEdgeMarker(item);
       item.classList.remove("issue-map-selected");
     });
     if (!IssueMapState.selected || !IssueMapState.selected.id) return;
@@ -1761,24 +1646,28 @@
     if (IssueMapState.selected.type === "edge") {
       const halo = els.output.querySelector("#" + cssEscape("edge_halo_" + IssueMapState.selected.id));
       if (halo) halo.classList.add("issue-map-selected");
+      return;
+    }
+
+    if (IssueMapState.selected.type === "node" && IssueMapState.data) {
+      IssueMapState.data.edges.forEach(function (edge) {
+        if (edge.from !== IssueMapState.selected.id && edge.to !== IssueMapState.selected.id) return;
+        const group = els.output.querySelector("#" + cssEscape("edge_" + edge.id));
+        if (group) {
+          group.classList.add("issue-map-selected");
+          const path = group.querySelector(".issue-edge-path");
+          if (path) path.setAttribute("marker-end", "url(#issue-arrow-selected)");
+        }
+        const halo = els.output.querySelector("#" + cssEscape("edge_halo_" + edge.id));
+        if (halo) halo.classList.add("issue-map-selected");
+      });
     }
   }
 
-  function markLoop() {
-    els.output.querySelectorAll(".issue-loop-highlight").forEach(function (item) {
-      item.classList.remove("issue-loop-highlight");
-    });
-    if (!IssueMapState.data || !IssueMapState.activeLoopId) return;
-    const loop = IssueMapState.data.loops.find(function (item) {
-      return item.id === IssueMapState.activeLoopId;
-    });
-    if (!loop) return;
-    loop.edgeIds.forEach(function (edgeId) {
-      const group = els.output.querySelector("#" + cssEscape("edge_" + edgeId));
-      if (group) group.classList.add("issue-loop-highlight");
-      const halo = els.output.querySelector("#" + cssEscape("edge_halo_" + edgeId));
-      if (halo) halo.classList.add("issue-loop-highlight");
-    });
+  function resetEdgeMarker(group) {
+    if (!group || !/^edge_/.test(group.id || "")) return;
+    const path = group.querySelector(".issue-edge-path");
+    if (path) path.setAttribute("marker-end", "url(#issue-arrow-neutral)");
   }
 
   function renderInspector() {
@@ -1994,37 +1883,6 @@
     });
   }
 
-  function renderLoopList() {
-    if (!IssueMapState.data || IssueMapState.data.loops.length === 0) {
-      els.loopList.innerHTML = '<div class="issue-help-text">ループなし</div>';
-      return;
-    }
-
-    els.loopList.innerHTML = IssueMapState.data.loops.map(function (loop) {
-      const active = loop.id === IssueMapState.activeLoopId ? " active" : "";
-      const type = loop.type === "balancing" ? "バランス" : "強化";
-      return [
-        '<button type="button" class="issue-loop-button' + active + '" data-loop-id="' + escapeAttribute(loop.id) + '">',
-        '<span>' + escapeHtml(loop.label || loop.id) + '</span>',
-        '<span class="issue-loop-type">' + type + '</span>',
-        "</button>"
-      ].join("");
-    }).join("");
-
-    els.loopList.querySelectorAll("button[data-loop-id]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        const id = button.getAttribute("data-loop-id");
-        IssueMapState.activeLoopId = id;
-        if (IssueMapState.edgeDisplayMode !== "loops") {
-          IssueMapState.edgeDisplayMode = "loops";
-          const selector = document.getElementById("issueEdgeDisplayMode");
-          if (selector) selector.value = "loops";
-        }
-        renderIssueMap();
-      });
-    });
-  }
-
   function renderRelationList() {
     if (!els.relationList) return;
     if (!IssueMapState.data || IssueMapState.data.edges.length === 0) {
@@ -2104,8 +1962,7 @@
     }
     els.meta.textContent = [
       IssueMapState.data.nodes.length + " nodes",
-      IssueMapState.data.edges.length + " edges",
-      IssueMapState.data.loops.length + " loops"
+      IssueMapState.data.edges.length + " edges"
     ].join(" / ");
   }
 
@@ -2244,24 +2101,11 @@
     IssueMapState.data.edges = IssueMapState.data.edges.filter(function (edge) {
       return edge.from !== nodeId && edge.to !== nodeId;
     });
-    const edgeIds = new Set(IssueMapState.data.edges.map(function (edge) { return edge.id; }));
-    IssueMapState.data.loops.forEach(function (loop) {
-      loop.edgeIds = loop.edgeIds.filter(function (edgeId) { return edgeIds.has(edgeId); });
-    });
-    IssueMapState.data.loops = IssueMapState.data.loops.filter(function (loop) {
-      return loop.edgeIds.length > 0;
-    });
   }
 
   function deleteEdge(edgeId) {
     IssueMapState.data.edges = IssueMapState.data.edges.filter(function (edge) {
       return edge.id !== edgeId;
-    });
-    IssueMapState.data.loops.forEach(function (loop) {
-      loop.edgeIds = loop.edgeIds.filter(function (id) { return id !== edgeId; });
-    });
-    IssueMapState.data.loops = IssueMapState.data.loops.filter(function (loop) {
-      return loop.edgeIds.length > 0;
     });
   }
 

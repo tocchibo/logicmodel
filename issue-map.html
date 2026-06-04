@@ -13,15 +13,6 @@
         <h1>課題構造マップ</h1>
         <div id="issueMapMeta" class="issue-meta" aria-live="polite"></div>
       </div>
-      <nav class="issue-toolbar" aria-label="操作">
-        <button id="loadSampleButton" type="button">サンプル読込</button>
-        <button id="renderIssueMapButton" type="button">描画</button>
-        <button id="saveIssueMapButton" type="button">JSON保存</button>
-        <button id="saveIssueMapSvgButton" type="button">SVG保存</button>
-        <button id="loadIssueMapButton" type="button">JSON読込</button>
-        <button id="copyIssueMapButton" type="button">JSONコピー</button>
-        <input id="issueMapFileInput" type="file" accept="application/json" hidden>
-      </nav>
     </header>
 
     <section class="issue-workspace">
@@ -29,6 +20,14 @@
         <div class="issue-panel-header">
           <h2>JSON</h2>
           <span id="issueMapStatus" class="issue-status" role="status" aria-live="polite"></span>
+        </div>
+        <div class="issue-json-actions" aria-label="JSON操作">
+          <button id="loadSampleButton" type="button">サンプル読込</button>
+          <button id="renderIssueMapButton" type="button">描画</button>
+          <button id="saveIssueMapButton" type="button">JSON保存</button>
+          <button id="loadIssueMapButton" type="button">JSON読込</button>
+          <button id="copyIssueMapButton" type="button">JSONコピー</button>
+          <input id="issueMapFileInput" type="file" accept="application/json" hidden>
         </div>
         <textarea id="issueMapInput" spellcheck="false" aria-label="課題構造マップJSON"></textarea>
         <div id="issueMapValidation" class="issue-validation" aria-live="polite"></div>
@@ -43,13 +42,9 @@
         <div class="issue-canvas-header">
           <div id="issueFilterBar" class="issue-filter-bar"></div>
           <div class="issue-canvas-actions">
-            <select id="issueEdgeDisplayMode" aria-label="関係表示">
-              <option value="all">全関係</option>
-              <option value="selected">選択周辺</option>
-              <option value="loops">選択ループ</option>
-            </select>
             <button id="addIssueNodeButton" type="button">ノード追加</button>
             <button id="addIssueEdgeButton" type="button">関係追加</button>
+            <button id="saveIssueMapSvgButton" type="button">SVG保存</button>
             <button id="clearIssueSelectionButton" type="button">選択解除</button>
           </div>
         </div>
@@ -65,10 +60,6 @@
         <div class="issue-panel-section">
           <h3>関係</h3>
           <div id="issueRelationList" class="issue-relation-list"></div>
-        </div>
-        <div class="issue-panel-section">
-          <h3>ループ</h3>
-          <div id="issueLoopList" class="issue-loop-list"></div>
         </div>
         <div class="issue-panel-section">
           <h3>根拠</h3>

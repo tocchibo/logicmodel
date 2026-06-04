@@ -92,7 +92,7 @@ textarea {
 .issue-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--issue-border);
@@ -120,24 +120,25 @@ textarea {
   margin-top: 3px;
 }
 
-.issue-toolbar {
+.issue-json-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--issue-border);
+  background: #ffffff;
 }
 
-.issue-toolbar button:nth-child(2),
-.issue-canvas-actions button:first-child,
+#renderIssueMapButton,
 .issue-correction button {
   background: var(--issue-accent);
   border-color: var(--issue-accent);
   color: #ffffff;
 }
 
-.issue-toolbar button:nth-child(2):hover,
-.issue-canvas-actions button:first-child:hover,
+#renderIssueMapButton:hover,
 .issue-correction button:hover {
   background: #237b5f;
   border-color: #237b5f;
@@ -165,7 +166,7 @@ textarea {
 
 .issue-panel {
   display: grid;
-  grid-template-rows: auto minmax(220px, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(220px, 1fr) auto auto;
   overflow: hidden;
 }
 
@@ -388,31 +389,23 @@ textarea {
 
 .issue-map-output .issue-map-selected polygon,
 .issue-map-output .issue-map-selected ellipse,
-.issue-map-output .issue-map-selected rect,
+.issue-map-output .issue-map-selected rect {
+  stroke-width: 3px !important;
+}
+
 .issue-map-output .issue-map-selected .issue-edge-path,
 .issue-map-output .issue-edge-path.issue-map-selected {
-  stroke: var(--issue-danger) !important;
+  stroke: #3f4743 !important;
   stroke-width: 3px !important;
 }
 
-.issue-map-output .issue-edge-halo.issue-map-selected,
-.issue-map-output .issue-edge-halo.issue-loop-highlight {
+.issue-map-output .issue-edge-halo.issue-map-selected {
   stroke: #ffffff !important;
-  stroke-width: 7px !important;
-}
-
-.issue-map-output .issue-loop-highlight .issue-edge-path {
-  stroke: #11875d !important;
-  stroke-width: 3px !important;
-}
-
-.issue-map-output .issue-loop-highlight text {
-  fill: #11875d !important;
-  font-weight: 700;
+  stroke-width: 6.5px !important;
 }
 
 .issue-inspector-panel {
-  grid-template-rows: auto minmax(180px, 1fr) auto auto auto;
+  grid-template-rows: auto minmax(180px, 1fr) auto auto;
 }
 
 .issue-inspector {
@@ -474,7 +467,6 @@ textarea {
 }
 
 .issue-relation-list,
-.issue-loop-list,
 .issue-evidence-list {
   display: grid;
   gap: 6px;
@@ -538,26 +530,6 @@ textarea {
   line-height: 1.35;
 }
 
-.issue-loop-button {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  text-align: left;
-  border-color: var(--issue-border);
-}
-
-.issue-loop-button.active {
-  border-color: var(--issue-danger);
-  color: var(--issue-danger);
-}
-
-.issue-loop-type {
-  color: var(--issue-muted);
-  font-size: 11px;
-}
-
 .issue-evidence-item {
   border: 1px solid var(--issue-border);
   border-radius: 6px;
@@ -587,12 +559,7 @@ textarea {
   }
 
   .issue-topbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .issue-toolbar {
-    justify-content: flex-start;
+    align-items: center;
   }
 }
 
@@ -606,13 +573,13 @@ textarea {
     padding: 10px;
   }
 
-  .issue-toolbar,
+  .issue-json-actions,
   .issue-canvas-actions {
     width: 100%;
     justify-content: stretch;
   }
 
-  .issue-toolbar button,
+  .issue-json-actions button,
   .issue-canvas-actions button {
     flex: 1 1 120px;
   }

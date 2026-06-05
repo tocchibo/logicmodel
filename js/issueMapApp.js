@@ -157,26 +157,33 @@
       return;
     }
 
-    let parsed;
+    let parseResult;
     try {
-      parsed = JSON.parse(raw);
+      parseResult = parseIssueMapInput(raw);
     } catch (error) {
-      showValidation({ errors: ["JSONをパースできません: " + error.message], warnings: [] });
+      showValidation({ errors: ["JSONを読み込めません: " + error.message], warnings: [] });
       setStatus("JSONエラー");
       return;
     }
 
-    const validation = validateIssueMap(parsed);
-    showValidation(validation);
+    const repairWarnings = parseResult.warnings.slice();
+    const data = normalizeIssueMap(parseResult.data, repairWarnings);
+    const validation = validateIssueMap(data);
+    const combinedValidation = {
+      errors: validation.errors,
+      warnings: repairWarnings.concat(validation.warnings)
+    };
+    showValidation(combinedValidation);
     if (validation.errors.length > 0) {
       setStatus("検証エラー");
       return;
     }
 
-    IssueMapState.data = normalizeIssueMap(parsed);
+    IssueMapState.data = data;
     ensurePerspectiveFilters(IssueMapState.data);
+    syncDataToInput();
     await renderIssueMap();
-    setStatus(validation.warnings.length > 0 ? "警告あり" : "表示中");
+    setStatus(combinedValidation.warnings.length > 0 ? "補正して表示中" : "表示中");
   }
 
   function clearIssueMapJson() {
@@ -227,6 +234,234 @@
       showValidation({ errors: ["SVG描画に失敗しました: " + error.message], warnings: [] });
       setStatus("描画エラー");
     }
+  }
+
+  function parseIssueMapInput(raw) {
+    const source = String(raw || "").trim().replace(/^\uFEFF/, "");
+    const candidates = [];
+
+    addParseCandidate(candidates, source, []);
+
+    const fenced = extractJsonCodeBlock(source);
+    if (fenced && fenced !== source) {
+      addParseCandidate(candidates, fenced, ["jsonコードブロックからJSON本文を抽出しました。"]);
+    }
+
+    const extracted = extractJsonObjectText(source);
+    if (extracted && extracted !== source && extracted !== fenced) {
+      addParseCandidate(candidates, extracted, ["前後の説明文を除いてJSONオブジェクトを抽出しました。"]);
+    }
+
+    const baseCount = candidates.length;
+    for (let i = 0; i < baseCount; i += 1) {
+      const relaxed = relaxJsonText(candidates[i].text);
+      if (relaxed !== candidates[i].text) {
+        addParseCandidate(
+          candidates,
+          relaxed,
+          candidates[i].warnings.concat(["末尾カンマ、コメント、単一引用符、未引用キーの一部を補正しました。"])
+        );
+      }
+    }
+
+    let lastError = null;
+    for (let i = 0; i < candidates.length; i += 1) {
+      try {
+        return {
+          data: JSON.parse(candidates[i].text),
+          warnings: candidates[i].warnings
+        };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw new Error(lastError ? lastError.message : "JSONとして解釈できません。");
+  }
+
+  function addParseCandidate(candidates, text, warnings) {
+    if (!text) return;
+    const normalized = String(text).trim();
+    if (!normalized) return;
+    if (candidates.some(function (candidate) { return candidate.text === normalized; })) return;
+    candidates.push({ text: normalized, warnings: warnings || [] });
+  }
+
+  function extractJsonCodeBlock(text) {
+    const fencePattern = /```(?:json)?\s*([\s\S]*?)```/i;
+    const match = String(text || "").match(fencePattern);
+    return match ? match[1].trim() : null;
+  }
+
+  function extractJsonObjectText(text) {
+    const value = String(text || "");
+    const start = value.indexOf("{");
+    const end = value.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) return null;
+    return value.slice(start, end + 1).trim();
+  }
+
+  function relaxJsonText(text) {
+    let relaxed = String(text || "");
+    relaxed = stripJsonComments(relaxed);
+    relaxed = replaceSingleQuotedStrings(relaxed);
+    relaxed = quoteBareObjectKeys(relaxed);
+    relaxed = removeTrailingJsonCommas(relaxed);
+    return relaxed.trim();
+  }
+
+  function stripJsonComments(text) {
+    let result = "";
+    let inString = false;
+    let escaped = false;
+    const value = String(text || "");
+
+    for (let i = 0; i < value.length; i += 1) {
+      const char = value[i];
+      const next = value[i + 1];
+
+      if (inString) {
+        result += char;
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        result += char;
+        continue;
+      }
+
+      if (char === "/" && next === "/") {
+        while (i < value.length && value[i] !== "\n") i += 1;
+        if (i < value.length) result += "\n";
+        continue;
+      }
+
+      if (char === "/" && next === "*") {
+        i += 2;
+        while (i < value.length && !(value[i] === "*" && value[i + 1] === "/")) i += 1;
+        i += 1;
+        continue;
+      }
+
+      result += char;
+    }
+
+    return result;
+  }
+
+  function replaceSingleQuotedStrings(text) {
+    let result = "";
+    let inDoubleString = false;
+    let escaped = false;
+    const value = String(text || "");
+
+    for (let i = 0; i < value.length; i += 1) {
+      const char = value[i];
+
+      if (inDoubleString) {
+        result += char;
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inDoubleString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inDoubleString = true;
+        result += char;
+        continue;
+      }
+
+      if (char !== "'") {
+        result += char;
+        continue;
+      }
+
+      let content = "";
+      let singleEscaped = false;
+      let closed = false;
+      for (let j = i + 1; j < value.length; j += 1) {
+        const inner = value[j];
+        if (singleEscaped) {
+          content += inner;
+          singleEscaped = false;
+          continue;
+        }
+        if (inner === "\\") {
+          singleEscaped = true;
+          continue;
+        }
+        if (inner === "'") {
+          result += JSON.stringify(content);
+          i = j;
+          closed = true;
+          break;
+        }
+        content += inner;
+      }
+      if (!closed) {
+        result += char;
+      }
+    }
+
+    return result;
+  }
+
+  function quoteBareObjectKeys(text) {
+    return String(text || "").replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$-]*)(\s*:)/g, '$1"$2"$3');
+  }
+
+  function removeTrailingJsonCommas(text) {
+    let result = "";
+    let inString = false;
+    let escaped = false;
+    const value = String(text || "");
+
+    for (let i = 0; i < value.length; i += 1) {
+      const char = value[i];
+
+      if (inString) {
+        result += char;
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        result += char;
+        continue;
+      }
+
+      if (char === ",") {
+        let j = i + 1;
+        while (j < value.length && /\s/.test(value[j])) j += 1;
+        if (value[j] === "}" || value[j] === "]") {
+          continue;
+        }
+      }
+
+      result += char;
+    }
+
+    return result;
   }
 
   function validateIssueMap(data) {
@@ -308,19 +543,411 @@
     return ids;
   }
 
-  function normalizeIssueMap(data) {
-    const normalized = JSON.parse(JSON.stringify(data));
-    normalized.scope = normalized.scope || {};
-    normalized.perspectives = normalized.perspectives || [];
-    normalized.nodes = normalized.nodes || [];
-    normalized.edges = normalized.edges || [];
+  function normalizeIssueMap(data, warnings) {
+    const repairs = warnings || [];
+    const root = unwrapIssueMapRoot(data, repairs);
+    const source = isPlainObject(root) ? JSON.parse(JSON.stringify(root)) : {};
+    const normalized = {};
+
+    if (!isPlainObject(root)) {
+      repairs.push("最上位がオブジェクトではないため、空のマップとして補完しました。");
+    }
+
+    if (source.schemaVersion !== SCHEMA_VERSION) {
+      repairs.push("schemaVersion を " + SCHEMA_VERSION + " に補完しました。");
+    }
+    normalized.schemaVersion = SCHEMA_VERSION;
+    normalized.title = String(source.title || "課題構造マップ");
+    normalized.scope = normalizeScope(source.scope, repairs);
+
+    const perspectives = normalizePerspectives(source.perspectives, source.nodes, repairs);
+    const evidence = normalizeEvidence(source.evidence, repairs);
+    const nodes = normalizeNodes(source.nodes, perspectives, evidence.ids, repairs);
+    const edges = normalizeEdges(source.edges, nodes, repairs);
+
+    normalized.perspectives = perspectives.items;
+    normalized.nodes = nodes.items;
+    normalized.edges = edges.items;
+    normalized.evidence = evidence.items;
+    normalized.layout = normalizeLayout(source.layout, repairs);
     delete normalized.loops;
-    normalized.evidence = normalized.evidence || [];
-    normalized.layout = normalized.layout || { engine: "auto", positions: {}, pinnedNodeIds: [] };
-    normalized.layout.engine = normalized.layout.engine || "auto";
-    normalized.layout.positions = normalized.layout.positions || {};
-    normalized.layout.pinnedNodeIds = normalized.layout.pinnedNodeIds || [];
     return normalized;
+  }
+
+  function unwrapIssueMapRoot(data, repairs) {
+    if (!isPlainObject(data)) return data;
+    const wrapperKeys = ["issueMap", "issue_map", "map", "data"];
+    for (let i = 0; i < wrapperKeys.length; i += 1) {
+      const key = wrapperKeys[i];
+      if (looksLikeIssueMap(data[key])) {
+        repairs.push("ラップされたJSONから課題構造マップ本体を抽出しました: " + key);
+        return data[key];
+      }
+    }
+    return data;
+  }
+
+  function looksLikeIssueMap(value) {
+    return isPlainObject(value) && (
+      value.schemaVersion === SCHEMA_VERSION ||
+      Array.isArray(value.nodes) ||
+      Array.isArray(value.perspectives) ||
+      Array.isArray(value.edges)
+    );
+  }
+
+  function normalizeScope(scope, repairs) {
+    if (scope && !isPlainObject(scope)) {
+      repairs.push("scope がオブジェクトではないため、既定値で補完しました。");
+    }
+    const value = isPlainObject(scope) ? scope : {};
+    return {
+      theme: String(value.theme || ""),
+      geography: String(value.geography || "未指定"),
+      targetPopulation: String(value.targetPopulation || "未指定"),
+      assumptions: coerceStringArray(value.assumptions)
+    };
+  }
+
+  function normalizePerspectives(rawPerspectives, rawNodes, repairs) {
+    const colors = ["#2f8f6f", "#3b82a0", "#8a8f3a", "#b36b42", "#7a6aa8", "#727b76"];
+    const items = [];
+    const idMap = {};
+    const ids = new Set();
+    let rawItems = coerceObjectArray(rawPerspectives);
+
+    if (rawItems.length === 0) {
+      const nodePerspectives = [];
+      coerceObjectArray(rawNodes).forEach(function (node) {
+        if (node && node.perspective && !nodePerspectives.includes(String(node.perspective))) {
+          nodePerspectives.push(String(node.perspective));
+        }
+      });
+      rawItems = nodePerspectives.map(function (value) {
+        return { id: value, label: value };
+      });
+    }
+
+    if (rawItems.length === 0) {
+      rawItems = [{ id: "general", label: "全般", color: colors[0] }];
+      repairs.push("perspectives がないため、全般の観点を補完しました。");
+    }
+
+    rawItems.forEach(function (item, index) {
+      const object = isPlainObject(item) ? item : { id: item, label: item };
+      const originalId = object.id || object.key || object.label || object.name || ("p" + String(index + 1).padStart(3, "0"));
+      const fallbackId = "p" + String(index + 1).padStart(3, "0");
+      const baseId = sanitizeIdentifier(originalId, fallbackId);
+      const id = uniqueIdentifier(baseId, ids, "p");
+      if (id !== String(originalId)) {
+        repairs.push("perspective.id を補正しました: " + String(originalId) + " -> " + id);
+      }
+      const label = String(object.label || object.name || originalId || id);
+      const color = /^#[0-9a-fA-F]{6}$/.test(String(object.color || "")) ? object.color : colors[index % colors.length];
+
+      items.push({ id: id, label: label, color: color });
+      ids.add(id);
+      idMap[String(originalId)] = id;
+      idMap[label] = id;
+      idMap[id] = id;
+    });
+
+    return {
+      items: items,
+      idMap: idMap,
+      ids: ids,
+      defaultId: items[0] ? items[0].id : "general"
+    };
+  }
+
+  function normalizeEvidence(rawEvidence, repairs) {
+    const items = [];
+    const ids = new Set();
+    coerceObjectArray(rawEvidence).forEach(function (item, index) {
+      const object = isPlainObject(item) ? item : { title: item };
+      const originalId = object.id || object.key || ("ev" + String(index + 1).padStart(3, "0"));
+      const baseId = sanitizeIdentifier(originalId, "ev" + String(index + 1).padStart(3, "0"));
+      const id = uniqueIdentifier(baseId, ids, "ev");
+      if (id !== String(originalId)) {
+        repairs.push("evidence.id を補正しました: " + String(originalId) + " -> " + id);
+      }
+      items.push({
+        id: id,
+        title: String(object.title || object.name || id),
+        url: String(object.url || ""),
+        note: String(object.note || object.summary || "")
+      });
+      ids.add(id);
+    });
+    return { items: items, ids: ids };
+  }
+
+  function normalizeNodes(rawNodes, perspectives, evidenceIds, repairs) {
+    const items = [];
+    const ids = new Set();
+    const idMap = {};
+    const labelMap = {};
+    coerceObjectArray(rawNodes).forEach(function (item, index) {
+      const object = isPlainObject(item) ? item : { label: item };
+      const originalId = object.id || object.key || ("n" + String(index + 1).padStart(3, "0"));
+      const fallbackId = "n" + String(index + 1).padStart(3, "0");
+      const baseId = sanitizeIdentifier(originalId, fallbackId);
+      const id = uniqueIdentifier(baseId, ids, "n");
+      if (id !== String(originalId)) {
+        repairs.push("node.id を補正しました: " + String(originalId) + " -> " + id);
+      }
+
+      const label = String(object.label || object.title || object.name || id);
+      const perspective = resolvePerspectiveId(object.perspective || object.category || object.group, perspectives, repairs);
+      const node = {
+        id: id,
+        label: label,
+        type: coerceNodeType(object.type, id, repairs),
+        perspective: perspective,
+        layer: coerceNodeLayer(object.layer, id, repairs),
+        status: coerceNodeStatus(object.status, id, repairs),
+        evidenceIds: coerceEvidenceIds(object.evidenceIds || object.evidence || object.evidenceId, evidenceIds, id, repairs)
+      };
+      items.push(node);
+      ids.add(id);
+      idMap[String(originalId)] = id;
+      idMap[id] = id;
+      labelMap[label] = id;
+    });
+    return { items: items, ids: ids, idMap: idMap, labelMap: labelMap };
+  }
+
+  function normalizeEdges(rawEdges, nodes, repairs) {
+    const items = [];
+    const ids = new Set();
+    coerceObjectArray(rawEdges).forEach(function (item, index) {
+      const object = isPlainObject(item) ? item : {};
+      const from = resolveNodeReference(object.from || object.source || object.cause || object.fromId || object.fromLabel, nodes);
+      const to = resolveNodeReference(object.to || object.target || object.effect || object.toId || object.toLabel, nodes);
+      const originalId = object.id || object.key || ("e" + String(index + 1).padStart(3, "0"));
+
+      if (!from || !to) {
+        repairs.push("参照先ノードが見つからない edge を除外しました: " + String(originalId));
+        return;
+      }
+      if (from === to) {
+        repairs.push("自己参照 edge を除外しました: " + String(originalId));
+        return;
+      }
+
+      const baseId = sanitizeIdentifier(originalId, "e" + String(index + 1).padStart(3, "0"));
+      const id = uniqueIdentifier(baseId, ids, "e");
+      if (id !== String(originalId)) {
+        repairs.push("edge.id を補正しました: " + String(originalId) + " -> " + id);
+      }
+      if (object.relation && object.relation !== "causes") {
+        repairs.push("edge.relation を causes に補正しました: " + id);
+      }
+      items.push({
+        id: id,
+        from: from,
+        to: to,
+        relation: "causes",
+        polarity: coercePolarity(object.polarity, id, repairs),
+        confidence: coerceConfidence(object.confidence, id, repairs),
+        rationale: String(object.rationale || object.reason || object.note || "")
+      });
+      ids.add(id);
+    });
+    return { items: items };
+  }
+
+  function normalizeLayout(layout, repairs) {
+    if (layout && !isPlainObject(layout)) {
+      repairs.push("layout がオブジェクトではないため、既定値で補完しました。");
+    }
+    const value = isPlainObject(layout) ? layout : {};
+    return {
+      engine: value.engine || "auto",
+      positions: isPlainObject(value.positions) ? value.positions : {},
+      pinnedNodeIds: Array.isArray(value.pinnedNodeIds) ? value.pinnedNodeIds.map(String) : []
+    };
+  }
+
+  function coerceObjectArray(value) {
+    if (Array.isArray(value)) return value;
+    if (isPlainObject(value)) {
+      return Object.keys(value).map(function (key) {
+        const item = value[key];
+        if (isPlainObject(item)) {
+          const copy = Object.assign({}, item);
+          if (!copy.id) copy.id = key;
+          if (!copy.key) copy.key = key;
+          return copy;
+        }
+        return { id: key, label: item, title: item };
+      });
+    }
+    if (value == null || value === "") return [];
+    return [value];
+  }
+
+  function coerceStringArray(value) {
+    if (Array.isArray(value)) {
+      return value.map(function (item) { return String(item); }).filter(Boolean);
+    }
+    if (value == null || value === "") return [];
+    return [String(value)];
+  }
+
+  function sanitizeIdentifier(value, fallback) {
+    const id = String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    return id || fallback;
+  }
+
+  function uniqueIdentifier(baseId, used, prefix) {
+    let id = baseId;
+    if (!used.has(id)) return id;
+    let index = 1;
+    do {
+      id = prefix + String(index).padStart(3, "0");
+      index += 1;
+    } while (used.has(id));
+    return id;
+  }
+
+  function resolvePerspectiveId(value, perspectives, repairs) {
+    const raw = String(value || "");
+    if (raw && perspectives.idMap[raw]) return perspectives.idMap[raw];
+    if (raw) {
+      const id = sanitizeIdentifier(raw, "p" + String(perspectives.items.length + 1).padStart(3, "0"));
+      const uniqueId = uniqueIdentifier(id, perspectives.ids, "p");
+      perspectives.items.push({ id: uniqueId, label: raw, color: "#727b76" });
+      perspectives.ids.add(uniqueId);
+      perspectives.idMap[raw] = uniqueId;
+      perspectives.idMap[uniqueId] = uniqueId;
+      repairs.push("nodes で使われている未知の perspective を追加しました: " + raw + " -> " + uniqueId);
+      return uniqueId;
+    }
+    repairs.push("node.perspective が空のため " + perspectives.defaultId + " に補完しました。");
+    return perspectives.defaultId;
+  }
+
+  function coerceNodeType(value, nodeId, repairs) {
+    const map = {
+      issue: "issue",
+      structural_factor: "structural_factor",
+      assumption: "assumption",
+      external_factor: "external_factor",
+      mental_model: "mental_model",
+      課題: "issue",
+      構造要因: "structural_factor",
+      前提条件: "assumption",
+      外部環境: "external_factor",
+      価値観: "mental_model",
+      固定観念: "mental_model",
+      メンタルモデル: "mental_model"
+    };
+    const key = String(value || "");
+    if (map[key]) return map[key];
+    repairs.push("node.type を issue に補完しました: " + nodeId);
+    return "issue";
+  }
+
+  function coerceNodeLayer(value, nodeId, repairs) {
+    const map = {
+      event: "event",
+      pattern: "pattern",
+      structure: "structure",
+      mental_model: "mental_model",
+      事象: "event",
+      表層: "event",
+      傾向: "pattern",
+      パターン: "pattern",
+      構造: "structure",
+      認識: "mental_model",
+      価値観: "mental_model",
+      メンタルモデル: "mental_model"
+    };
+    const key = String(value || "");
+    if (map[key]) return map[key];
+    repairs.push("node.layer を structure に補完しました: " + nodeId);
+    return "structure";
+  }
+
+  function coerceNodeStatus(value, nodeId, repairs) {
+    const map = {
+      hypothesis: "hypothesis",
+      supported: "supported",
+      needs_review: "needs_review",
+      仮説: "hypothesis",
+      根拠あり: "supported",
+      要確認: "needs_review",
+      確認必要: "needs_review"
+    };
+    const key = String(value || "");
+    if (map[key]) return map[key];
+    repairs.push("node.status を hypothesis に補完しました: " + nodeId);
+    return "hypothesis";
+  }
+
+  function coerceEvidenceIds(value, evidenceIds, nodeId, repairs) {
+    const ids = Array.isArray(value) ? value : splitIds(value);
+    const result = [];
+    ids.forEach(function (id) {
+      const evidenceId = String(id);
+      if (evidenceIds.has(evidenceId)) {
+        result.push(evidenceId);
+      } else {
+        repairs.push("存在しない evidenceId を node から除外しました: " + nodeId + " / " + evidenceId);
+      }
+    });
+    return result;
+  }
+
+  function resolveNodeReference(value, nodes) {
+    const raw = String(value || "");
+    if (!raw) return null;
+    if (nodes.idMap[raw]) return nodes.idMap[raw];
+    if (nodes.labelMap[raw]) return nodes.labelMap[raw];
+    const sanitized = sanitizeIdentifier(raw, "");
+    return nodes.idMap[sanitized] || null;
+  }
+
+  function coercePolarity(value, edgeId, repairs) {
+    const key = String(value || "");
+    const map = {
+      "+": "+",
+      "-": "-",
+      unknown: "unknown",
+      positive: "+",
+      negative: "-",
+      plus: "+",
+      minus: "-",
+      正: "+",
+      負: "-",
+      不明: "unknown",
+      unknown_direction: "unknown"
+    };
+    if (map[key]) return map[key];
+    repairs.push("edge.polarity を unknown に補完しました: " + edgeId);
+    return "unknown";
+  }
+
+  function coerceConfidence(value, edgeId, repairs) {
+    const key = String(value || "");
+    const map = {
+      high: "high",
+      medium: "medium",
+      low: "low",
+      高: "high",
+      中: "medium",
+      低: "low",
+      強: "high",
+      弱: "low"
+    };
+    if (map[key]) return map[key];
+    repairs.push("edge.confidence を medium に補完しました: " + edgeId);
+    return "medium";
   }
 
   function ensureEditableData() {
@@ -2101,7 +2728,8 @@
   function currentDataFromStateOrInput() {
     if (IssueMapState.data) return IssueMapState.data;
     try {
-      return normalizeIssueMap(JSON.parse(els.input.value));
+      const parseResult = parseIssueMapInput(els.input.value);
+      return normalizeIssueMap(parseResult.data, parseResult.warnings.slice());
     } catch (error) {
       return null;
     }

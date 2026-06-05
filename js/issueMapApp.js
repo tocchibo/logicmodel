@@ -69,7 +69,10 @@
     bindEvents();
     showEmptyGraph();
     renderInspector();
-    loadSampleIssueMap();
+    clearValidation();
+    updateMeta();
+    updateSelectionLabel();
+    setStatus("未入力");
   }
 
   function cacheElements() {
@@ -89,6 +92,7 @@
 
   function bindEvents() {
     document.getElementById("loadSampleButton").addEventListener("click", loadSampleIssueMap);
+    document.getElementById("clearIssueMapButton").addEventListener("click", clearIssueMapJson);
     document.getElementById("renderIssueMapButton").addEventListener("click", renderFromInput);
     document.getElementById("saveIssueMapButton").addEventListener("click", saveIssueMapJson);
     document.getElementById("saveIssueMapSvgButton").addEventListener("click", saveIssueMapSvg);
@@ -143,7 +147,7 @@
       IssueMapState.data = null;
       IssueMapState.selected = null;
       showEmptyGraph();
-      showValidation({ errors: [], warnings: [] });
+      clearValidation();
       renderInspector();
       renderRelationList();
       renderEvidenceList();
@@ -173,6 +177,22 @@
     ensurePerspectiveFilters(IssueMapState.data);
     await renderIssueMap();
     setStatus(validation.warnings.length > 0 ? "警告あり" : "表示中");
+  }
+
+  function clearIssueMapJson() {
+    els.input.value = "";
+    IssueMapState.data = null;
+    IssueMapState.selected = null;
+    IssueMapState.visiblePerspectives.clear();
+    showEmptyGraph();
+    clearValidation();
+    renderInspector();
+    renderRelationList();
+    renderEvidenceList();
+    renderFilterBar();
+    updateMeta();
+    updateSelectionLabel();
+    setStatus("未入力");
   }
 
   async function renderIssueMap() {
@@ -1986,6 +2006,10 @@
       }).join("") + "</ul>");
     }
     els.validation.innerHTML = parts.join("");
+  }
+
+  function clearValidation() {
+    els.validation.textContent = "";
   }
 
   function syncAndRender(status) {

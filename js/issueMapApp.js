@@ -61,6 +61,12 @@
   };
 
   const els = {};
+  const AUTO_RENDER_DELAY_MS = 900;
+  const AUTO_RENDER_PASTE_DELAY_MS = 120;
+  let autoRenderTimer = null;
+  let autoRenderInProgress = false;
+  let autoRenderQueued = false;
+  let inputCompositionActive = false;
 
   document.addEventListener("DOMContentLoaded", initIssueMapApp);
 
@@ -93,7 +99,10 @@
   function bindEvents() {
     document.getElementById("loadSampleButton").addEventListener("click", loadSampleIssueMap);
     document.getElementById("clearIssueMapButton").addEventListener("click", clearIssueMapJson);
-    document.getElementById("renderIssueMapButton").addEventListener("click", renderFromInput);
+    document.getElementById("renderIssueMapButton").addEventListener("click", function () {
+      cancelAutoRender();
+      renderFromInput();
+    });
     document.getElementById("saveIssueMapButton").addEventListener("click", saveIssueMapJson);
     document.getElementById("saveIssueMapSvgButton").addEventListener("click", saveIssueMapSvg);
     document.getElementById("loadIssueMapButton").addEventListener("click", function () {
@@ -119,6 +128,53 @@
       renderIssueMap();
     });
     els.fileInput.addEventListener("change", handleFileLoad);
+    els.input.addEventListener("input", handleIssueMapInputChange);
+    els.input.addEventListener("blur", function () {
+      scheduleAutoRender(0);
+    });
+    els.input.addEventListener("compositionstart", function () {
+      inputCompositionActive = true;
+    });
+    els.input.addEventListener("compositionend", function () {
+      inputCompositionActive = false;
+      scheduleAutoRender(AUTO_RENDER_DELAY_MS);
+    });
+  }
+
+  function handleIssueMapInputChange(event) {
+    if (inputCompositionActive) return;
+    const delay = event && event.inputType === "insertFromPaste" ? AUTO_RENDER_PASTE_DELAY_MS : AUTO_RENDER_DELAY_MS;
+    scheduleAutoRender(delay);
+  }
+
+  function scheduleAutoRender(delay) {
+    cancelAutoRender();
+    autoRenderTimer = window.setTimeout(runAutoRenderFromInput, delay);
+  }
+
+  function cancelAutoRender() {
+    if (!autoRenderTimer) return;
+    window.clearTimeout(autoRenderTimer);
+    autoRenderTimer = null;
+  }
+
+  async function runAutoRenderFromInput() {
+    autoRenderTimer = null;
+    if (autoRenderInProgress) {
+      autoRenderQueued = true;
+      return;
+    }
+
+    autoRenderInProgress = true;
+    try {
+      await renderFromInput({ syncInput: document.activeElement !== els.input });
+    } finally {
+      autoRenderInProgress = false;
+      if (autoRenderQueued) {
+        autoRenderQueued = false;
+        scheduleAutoRender(AUTO_RENDER_DELAY_MS);
+      }
+    }
   }
 
   async function loadSampleIssueMap() {
@@ -141,7 +197,8 @@
     }
   }
 
-  async function renderFromInput() {
+  async function renderFromInput(options) {
+    const shouldSyncInput = !options || options.syncInput !== false;
     const raw = els.input.value.trim();
     if (!raw) {
       IssueMapState.data = null;
@@ -181,7 +238,9 @@
 
     IssueMapState.data = data;
     ensurePerspectiveFilters(IssueMapState.data);
-    syncDataToInput();
+    if (shouldSyncInput) {
+      syncDataToInput();
+    }
     await renderIssueMap();
     setStatus(combinedValidation.warnings.length > 0 ? "補正して表示中" : "表示中");
   }

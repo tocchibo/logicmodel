@@ -2575,7 +2575,7 @@
 
     els.evidenceList.innerHTML = IssueMapState.data.evidence.map(function (evidence) {
       const relatedStyle = relatedIds.has(evidence.id) ? ' style="border-color: var(--issue-accent);"' : "";
-      const url = evidence.url ? '<div class="issue-evidence-note">' + escapeHtml(evidence.url) + "</div>" : "";
+      const url = buildEvidenceUrlHtml(evidence.url);
       return [
         '<div class="issue-evidence-item"' + relatedStyle + '>',
         '<div class="issue-evidence-title">' + escapeHtml(evidence.id + " " + (evidence.title || "")) + "</div>",
@@ -2584,6 +2584,34 @@
         "</div>"
       ].join("");
     }).join("");
+  }
+
+  function buildEvidenceUrlHtml(url) {
+    const value = String(url || "").trim();
+    if (!value) return "";
+    const safeUrl = safeExternalUrl(value);
+    if (!safeUrl) {
+      return '<div class="issue-evidence-note">' + escapeHtml(value) + "</div>";
+    }
+    return [
+      '<div class="issue-evidence-note">',
+      '<a class="issue-evidence-link" href="' + escapeAttribute(safeUrl) + '" target="_blank" rel="noopener noreferrer">',
+      escapeHtml(value),
+      "</a>",
+      "</div>"
+    ].join("");
+  }
+
+  function safeExternalUrl(url) {
+    try {
+      const parsed = new URL(url, window.location.href);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return parsed.href;
+      }
+    } catch (error) {
+      return "";
+    }
+    return "";
   }
 
   function updateSelectionLabel() {

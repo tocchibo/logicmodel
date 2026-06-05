@@ -550,6 +550,15 @@ textarea {
   margin-top: 4px;
 }
 
+.issue-evidence-link {
+  color: var(--issue-accent-blue);
+  overflow-wrap: anywhere;
+}
+
+.issue-evidence-link:hover {
+  color: #286d88;
+}
+
 @media (max-width: 1180px) {
   .issue-workspace {
     grid-template-columns: 1fr;

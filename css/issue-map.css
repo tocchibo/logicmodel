@@ -375,6 +375,16 @@ textarea {
   vector-effect: non-scaling-stroke;
 }
 
+.issue-map-output .issue-edge-hit-area {
+  fill: none;
+  stroke: transparent;
+  pointer-events: stroke;
+}
+
+.issue-map-output .issue-edge-halo {
+  pointer-events: none;
+}
+
 .issue-map-output .issue-edge-tag-bg,
 .issue-map-output .issue-edge-tag-outline {
   vector-effect: non-scaling-stroke;
@@ -389,19 +399,112 @@ textarea {
 
 .issue-map-output .issue-map-selected polygon,
 .issue-map-output .issue-map-selected ellipse,
-.issue-map-output .issue-map-selected rect {
+.issue-map-output .issue-map-selected rect,
+.issue-map-output .issue-map-hover polygon,
+.issue-map-output .issue-map-hover ellipse,
+.issue-map-output .issue-map-hover rect,
+.issue-map-output .issue-map-hover-related polygon,
+.issue-map-output .issue-map-hover-related ellipse,
+.issue-map-output .issue-map-hover-related rect {
   stroke-width: 3px !important;
 }
 
 .issue-map-output .issue-map-selected .issue-edge-path,
-.issue-map-output .issue-edge-path.issue-map-selected {
+.issue-map-output .issue-edge-path.issue-map-selected,
+.issue-map-output .issue-map-hover .issue-edge-path,
+.issue-map-output .issue-edge-path.issue-map-hover {
   stroke: #3f4743 !important;
   stroke-width: 3px !important;
+  opacity: 0.95 !important;
 }
 
-.issue-map-output .issue-edge-halo.issue-map-selected {
+.issue-map-output .issue-edge-halo.issue-map-selected,
+.issue-map-output .issue-edge-halo.issue-map-hover {
   stroke: #ffffff !important;
   stroke-width: 6.5px !important;
+}
+
+.issue-map-output .issue-map-hover-related .issue-node-box {
+  filter: drop-shadow(0 2px 6px rgba(47, 143, 111, 0.22));
+}
+
+.issue-map-tooltip {
+  position: fixed;
+  z-index: 1000;
+  display: none;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(50vh, 420px);
+  overflow: auto;
+  border: 1px solid var(--issue-border-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 36px rgba(32, 39, 35, 0.18);
+  padding: 12px;
+  color: var(--issue-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.issue-map-tooltip-kicker {
+  color: var(--issue-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.issue-map-tooltip-title {
+  margin-top: 3px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.issue-map-tooltip-meta {
+  margin-top: 5px;
+  color: var(--issue-muted);
+  font-size: 11px;
+}
+
+.issue-map-tooltip-section-title {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--issue-border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--issue-muted);
+  text-transform: uppercase;
+}
+
+.issue-map-tooltip-body,
+.issue-map-tooltip-empty,
+.issue-map-tooltip-evidence-note {
+  margin-top: 5px;
+  color: var(--issue-text);
+}
+
+.issue-map-tooltip-empty {
+  color: var(--issue-muted);
+}
+
+.issue-map-tooltip-evidence {
+  margin-top: 8px;
+  border: 1px solid var(--issue-border);
+  border-radius: 6px;
+  background: #fbfcfa;
+  padding: 8px;
+}
+
+.issue-map-tooltip-evidence-title {
+  font-weight: 700;
+}
+
+.issue-map-tooltip .issue-evidence-note {
+  margin-top: 5px;
+}
+
+.issue-map-tooltip .issue-evidence-link {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .issue-inspector-panel {

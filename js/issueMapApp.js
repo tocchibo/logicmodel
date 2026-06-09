@@ -63,10 +63,13 @@
   const els = {};
   const AUTO_RENDER_DELAY_MS = 900;
   const AUTO_RENDER_PASTE_DELAY_MS = 120;
+  const HOVER_TOOLTIP_HIDE_DELAY_MS = 260;
   let autoRenderTimer = null;
   let autoRenderInProgress = false;
   let autoRenderQueued = false;
   let inputCompositionActive = false;
+  let hoverTooltip = null;
+  let hoverTooltipHideTimer = null;
 
   document.addEventListener("DOMContentLoaded", initIssueMapApp);
 
@@ -262,6 +265,7 @@
   }
 
   async function renderIssueMap() {
+    hideHoverTooltip();
     if (!IssueMapState.data) {
       showEmptyGraph();
       return;
@@ -1333,6 +1337,15 @@
         class: "edge"
       });
       edgeGroup.appendChild(svgElement("path", {
+        class: "issue-edge-hit-area",
+        d: path,
+        fill: "none",
+        stroke: "transparent",
+        "stroke-width": 14,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }));
+      edgeGroup.appendChild(svgElement("path", {
         class: "issue-edge-path",
         d: path,
         fill: "none",
@@ -1666,6 +1679,15 @@
         id: "edge_" + edge.id,
         class: "edge"
       });
+      edgeGroup.appendChild(svgElement("path", {
+        class: "issue-edge-hit-area",
+        d: route.path,
+        fill: "none",
+        stroke: "transparent",
+        "stroke-width": 14,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }));
       edgeGroup.appendChild(svgElement("path", {
         class: "issue-edge-path",
         d: route.path,
@@ -2307,17 +2329,26 @@
   function attachSvgEventHandlers() {
     els.output.onclick = function () {
       IssueMapState.selected = null;
+      hideHoverTooltip();
       renderIssueMap();
     };
-    els.output.querySelectorAll("[id^='node_']").forEach(function (group) {
+    els.output.querySelectorAll("g.node[id^='node_']").forEach(function (group) {
       const nodeId = group.id.replace(/^node_/, "");
+      group.addEventListener("mouseenter", function (event) {
+        showNodeHover(nodeId, group, event);
+      });
+      group.addEventListener("mouseleave", scheduleHideHoverTooltip);
       group.addEventListener("click", function (event) {
         event.stopPropagation();
         selectItem("node", nodeId);
       });
     });
-    els.output.querySelectorAll("[id^='edge_']").forEach(function (group) {
+    els.output.querySelectorAll("g.edge[id^='edge_']").forEach(function (group) {
       const edgeId = group.id.replace(/^edge_/, "");
+      group.addEventListener("mouseenter", function (event) {
+        showEdgeHover(edgeId, group, event);
+      });
+      group.addEventListener("mouseleave", scheduleHideHoverTooltip);
       group.addEventListener("click", function (event) {
         event.stopPropagation();
         selectItem("edge", edgeId);
@@ -2374,6 +2405,200 @@
     if (!group || !/^edge_/.test(group.id || "")) return;
     const path = group.querySelector(".issue-edge-path");
     if (path) path.setAttribute("marker-end", "url(#issue-arrow-neutral)");
+  }
+
+  function showNodeHover(nodeId, group, event) {
+    const node = findNode(nodeId);
+    if (!node) return;
+    cancelHoverTooltipHide();
+    clearHoverHighlights();
+
+    group.classList.add("issue-map-hover");
+    IssueMapState.data.edges.forEach(function (edge) {
+      if (edge.from === nodeId || edge.to === nodeId) {
+        addHoverEdge(edge.id, "issue-map-hover");
+      }
+    });
+
+    showHoverTooltip(buildNodeHoverTooltipHtml(node), getTooltipAnchor(group, event, "node"));
+  }
+
+  function showEdgeHover(edgeId, group, event) {
+    const edge = findEdge(edgeId);
+    if (!edge) return;
+    cancelHoverTooltipHide();
+    clearHoverHighlights();
+
+    addHoverEdge(edge.id, "issue-map-hover");
+    addHoverNode(edge.from, "issue-map-hover-related");
+    addHoverNode(edge.to, "issue-map-hover-related");
+
+    showHoverTooltip(buildEdgeHoverTooltipHtml(edge), getTooltipAnchor(group, event, "edge"));
+  }
+
+  function addHoverNode(nodeId, className) {
+    const node = els.output.querySelector("#" + cssEscape("node_" + nodeId));
+    if (node) node.classList.add(className);
+  }
+
+  function addHoverEdge(edgeId, className) {
+    const edge = els.output.querySelector("#" + cssEscape("edge_" + edgeId));
+    if (edge) {
+      edge.classList.add(className);
+      const path = edge.querySelector(".issue-edge-path");
+      if (path) path.setAttribute("marker-end", "url(#issue-arrow-selected)");
+    }
+    const halo = els.output.querySelector("#" + cssEscape("edge_halo_" + edgeId));
+    if (halo) halo.classList.add(className);
+  }
+
+  function clearHoverHighlights() {
+    if (!els.output) return;
+    els.output.querySelectorAll(".issue-map-hover, .issue-map-hover-related").forEach(function (item) {
+      resetEdgeMarker(item);
+      item.classList.remove("issue-map-hover", "issue-map-hover-related");
+    });
+    markSelection();
+  }
+
+  function showHoverTooltip(html, anchor) {
+    const tooltip = ensureHoverTooltip();
+    tooltip.innerHTML = html;
+    tooltip.style.display = "block";
+    tooltip.style.left = "0px";
+    tooltip.style.top = "0px";
+    positionHoverTooltip(tooltip, anchor);
+  }
+
+  function ensureHoverTooltip() {
+    if (hoverTooltip) return hoverTooltip;
+    hoverTooltip = document.createElement("div");
+    hoverTooltip.className = "issue-map-tooltip";
+    hoverTooltip.setAttribute("role", "tooltip");
+    hoverTooltip.addEventListener("mouseenter", cancelHoverTooltipHide);
+    hoverTooltip.addEventListener("mouseleave", scheduleHideHoverTooltip);
+    hoverTooltip.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+    document.body.appendChild(hoverTooltip);
+    return hoverTooltip;
+  }
+
+  function scheduleHideHoverTooltip() {
+    cancelHoverTooltipHide();
+    hoverTooltipHideTimer = window.setTimeout(hideHoverTooltip, HOVER_TOOLTIP_HIDE_DELAY_MS);
+  }
+
+  function cancelHoverTooltipHide() {
+    if (!hoverTooltipHideTimer) return;
+    window.clearTimeout(hoverTooltipHideTimer);
+    hoverTooltipHideTimer = null;
+  }
+
+  function hideHoverTooltip() {
+    cancelHoverTooltipHide();
+    clearHoverHighlights();
+    if (!hoverTooltip) return;
+    hoverTooltip.remove();
+    hoverTooltip = null;
+  }
+
+  function getTooltipAnchor(group, event, type) {
+    const rect = group.getBoundingClientRect();
+    if (type === "edge" && event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+      return {
+        type: "point",
+        x: event.clientX,
+        y: event.clientY,
+        rect: rect
+      };
+    }
+    return {
+      type: "rect",
+      rect: rect
+    };
+  }
+
+  function positionHoverTooltip(tooltip, anchor) {
+    const margin = 12;
+    const pointOffset = 12;
+    const rectOverlap = 3;
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    let x;
+    let y;
+
+    if (anchor.type === "point") {
+      x = anchor.x + pointOffset;
+      y = anchor.y + pointOffset;
+      if (x + width > window.innerWidth - margin) x = anchor.x - width - pointOffset;
+      if (y + height > window.innerHeight - margin) y = anchor.y - height - pointOffset;
+    } else {
+      const rect = anchor.rect;
+      const rightX = rect.right - rectOverlap;
+      const leftX = rect.left - width + rectOverlap;
+      const canPlaceRight = rightX + width <= window.innerWidth - margin;
+      const canPlaceLeft = leftX >= margin;
+      x = canPlaceRight || !canPlaceLeft ? rightX : leftX;
+      y = rect.top;
+      if (!canPlaceRight && !canPlaceLeft) {
+        x = rect.left;
+      }
+    }
+
+    x = clamp(x, margin, Math.max(margin, window.innerWidth - width - margin));
+    y = clamp(y, margin, Math.max(margin, window.innerHeight - height - margin));
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+  }
+
+  function buildNodeHoverTooltipHtml(node) {
+    const evidenceItems = getNodeEvidenceItems(node);
+    return [
+      '<div class="issue-map-tooltip-kicker">ノード ' + escapeHtml(compactNodeTag(node.id)) + "</div>",
+      '<div class="issue-map-tooltip-title">' + escapeHtml(node.label || node.id) + "</div>",
+      '<div class="issue-map-tooltip-meta">' + escapeHtml([
+        TYPE_LABELS[node.type] || node.type || "",
+        LAYER_LABELS[node.layer] || node.layer || "",
+        STATUS_LABELS[node.status] || node.status || ""
+      ].filter(Boolean).join(" / ")) + "</div>",
+      '<div class="issue-map-tooltip-section-title">エビデンス</div>',
+      evidenceItems.length > 0
+        ? evidenceItems.map(buildTooltipEvidenceHtml).join("")
+        : '<div class="issue-map-tooltip-empty">紐づくエビデンスはありません。</div>'
+    ].join("");
+  }
+
+  function buildEdgeHoverTooltipHtml(edge) {
+    const from = findNode(edge.from);
+    const to = findNode(edge.to);
+    const fromLabel = from && from.label ? from.label : edge.from;
+    const toLabel = to && to.label ? to.label : edge.to;
+    return [
+      '<div class="issue-map-tooltip-kicker">矢印 ' + escapeHtml(compactEdgeTag(edge.id)) + "</div>",
+      '<div class="issue-map-tooltip-title">' + escapeHtml(compactNodeTag(edge.from) + " -> " + compactNodeTag(edge.to) + polarityLabel(edge.polarity)) + "</div>",
+      '<div class="issue-map-tooltip-meta">' + escapeHtml(shortLabel(fromLabel, 28) + " -> " + shortLabel(toLabel, 28)) + "</div>",
+      '<div class="issue-map-tooltip-section-title">rationale</div>',
+      '<div class="issue-map-tooltip-body">' + escapeHtml(edge.rationale || "rationale は未入力です。") + "</div>",
+      '<div class="issue-map-tooltip-meta">' + escapeHtml("confidence: " + (edge.confidence || "medium")) + "</div>"
+    ].join("");
+  }
+
+  function getNodeEvidenceItems(node) {
+    const evidenceById = indexById(IssueMapState.data.evidence || []);
+    return (node.evidenceIds || [])
+      .map(function (id) { return evidenceById[id]; })
+      .filter(Boolean);
+  }
+
+  function buildTooltipEvidenceHtml(evidence) {
+    return [
+      '<div class="issue-map-tooltip-evidence">',
+      '<div class="issue-map-tooltip-evidence-title">' + escapeHtml(evidence.id + " " + (evidence.title || "")) + "</div>",
+      buildEvidenceUrlHtml(evidence.url),
+      evidence.note ? '<div class="issue-map-tooltip-evidence-note">' + escapeHtml(evidence.note) + "</div>" : "",
+      "</div>"
+    ].join("");
   }
 
   function renderInspector() {
@@ -2849,6 +3074,7 @@
   }
 
   function showEmptyGraph() {
+    hideHoverTooltip();
     els.output.innerHTML = '<div class="issue-map-empty">JSON未描画</div>';
   }
 

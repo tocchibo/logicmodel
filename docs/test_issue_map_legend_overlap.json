@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "issue-map/v1",
+  "title": "凡例重なり確認用の課題構造マップ",
+  "scope": {
+    "theme": "地域の相談支援が届きにくい構造",
+    "geography": "テスト用",
+    "targetPopulation": "住民、支援機関、自治体",
+    "assumptions": [
+      "左側に多数の要因ノードが縦に並ぶ条件を作るためのUI検証データ"
+    ]
+  },
+  "perspectives": [
+    { "id": "barriers", "label": "支援を妨げる要因", "color": "#3b82a0" },
+    { "id": "core", "label": "中心課題", "color": "#b36b42" }
+  ],
+  "nodes": [
+    {
+      "id": "n001",
+      "label": "制度の案内文が専門用語中心になっている",
+      "type": "structural_factor",
+      "perspective": "barriers",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n002",
+      "label": "相談窓口の担当範囲が住民から見えにくい",
+      "type": "structural_factor",
+      "perspective": "barriers",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n003",
+      "label": "平日日中しか相談できない",
+      "type": "issue",
+      "perspective": "barriers",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n004",
+      "label": "移動手段が少ない地域から窓口に行きにくい",
+      "type": "issue",
+      "perspective": "barriers",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n005",
+      "label": "オンライン相談の導線が複数サイトに分散している",
+      "type": "structural_factor",
+      "perspective": "barriers",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n006",
+      "label": "支援機関同士の紹介ルールが統一されていない",
+      "type": "structural_factor",
+      "perspective": "barriers",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n007",
+      "label": "過去に相談して解決しなかった経験が残っている",
+      "type": "mental_model",
+      "perspective": "barriers",
+      "layer": "mental_model",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n008",
+      "label": "困りごとを家族内で抱え込む傾向がある",
+      "type": "mental_model",
+      "perspective": "barriers",
+      "layer": "mental_model",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n009",
+      "label": "必要書類をそろえる負担が大きい",
+      "type": "issue",
+      "perspective": "barriers",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n010",
+      "label": "多言語での案内が不足している",
+      "type": "issue",
+      "perspective": "barriers",
+      "layer": "structure",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n011",
+      "label": "支援制度の更新情報が地域に届きにくい",
+      "type": "structural_factor",
+      "perspective": "barriers",
+      "layer": "pattern",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n012",
+      "label": "相談することへの心理的な抵抗感がある",
+      "type": "mental_model",
+      "perspective": "barriers",
+      "layer": "mental_model",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    },
+    {
+      "id": "n013",
+      "label": "個別事情に合う支援へたどり着きにくい",
+      "type": "issue",
+      "perspective": "core",
+      "layer": "event",
+      "status": "hypothesis",
+      "evidenceIds": ["ev001"]
+    }
+  ],
+  "edges": [
+    { "id": "e001", "from": "n001", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "制度情報が読み取りにくいと、自分が対象か判断しづらい。" },
+    { "id": "e002", "from": "n002", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "窓口の担当範囲が見えないと、最初の相談先を選びにくい。" },
+    { "id": "e003", "from": "n003", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "相談時間が限られると、仕事や介護と両立しにくい。" },
+    { "id": "e004", "from": "n004", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "移動負担が大きいと、対面相談につながりにくい。" },
+    { "id": "e005", "from": "n005", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "導線が分散すると、必要な情報を探す負荷が増える。" },
+    { "id": "e006", "from": "n006", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "紹介ルールがばらつくと、次の支援につながるまで時間がかかる。" },
+    { "id": "e007", "from": "n007", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "low", "rationale": "過去の未解決経験は再相談をためらう要因になる。" },
+    { "id": "e008", "from": "n008", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "low", "rationale": "家庭内で抱え込むほど外部支援への接点が遅れる。" },
+    { "id": "e009", "from": "n009", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "書類準備の負担は申請前の離脱につながる。" },
+    { "id": "e010", "from": "n010", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "low", "rationale": "言語面の不足は制度理解や相談予約を妨げる。" },
+    { "id": "e011", "from": "n011", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "medium", "rationale": "更新情報が届かないと、使える支援に気づきにくい。" },
+    { "id": "e012", "from": "n012", "to": "n013", "relation": "causes", "polarity": "+", "confidence": "low", "rationale": "心理的な抵抗感は初回相談の行動を遅らせる。" }
+  ],
+  "evidence": [
+    {
+      "id": "ev001",
+      "title": "UI検証用仮説メモ",
+      "url": "",
+      "note": "凡例と下端ノードの重なりを再現するためのダミーデータ。"
+    }
+  ],
+  "layout": {
+    "engine": "auto",
+    "positions": {},
+    "pinnedNodeIds": []
+  }
+}

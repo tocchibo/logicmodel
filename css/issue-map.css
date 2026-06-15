@@ -365,6 +365,7 @@ textarea {
 .issue-map-output .issue-node-id-text,
 .issue-map-output .issue-edge-label,
 .issue-map-output .issue-perspective-label,
+.issue-map-output .issue-map-legend text,
 .issue-map-output .issue-map-title {
   font-family: Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
   letter-spacing: 0;

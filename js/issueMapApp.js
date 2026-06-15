@@ -30,7 +30,11 @@
     labelFontSize: 13,
     labelLineHeight: 15,
     labelMaxLines: 3,
-    labelPaddingX: 14
+    labelPaddingX: 14,
+    legendGap: 18,
+    legendRowHeight: 20,
+    legendItemGap: 18,
+    legendSwatchSize: 12
   };
 
   const TYPE_LABELS = {
@@ -1250,7 +1254,9 @@
     const padding = ELK_MAP.padding;
     const titleHeight = ELK_MAP.titleHeight;
     const width = Math.max(ELK_MAP.minWidth, Math.ceil((layout.width || 0) + padding * 2));
-    const height = Math.max(ELK_MAP.minHeight, Math.ceil((layout.height || 0) + padding * 2 + titleHeight));
+    const legendPlan = createElkLegendPlan(data, padding, width - padding);
+    const legendReserve = legendPlan.height > 0 ? ELK_MAP.legendGap + legendPlan.height : 0;
+    const height = Math.max(ELK_MAP.minHeight, Math.ceil((layout.height || 0) + padding * 2 + titleHeight + legendReserve));
     const svg = svgElement("svg", {
       xmlns: "http://www.w3.org/2000/svg",
       viewBox: "0 0 " + width + " " + height,
@@ -1273,7 +1279,7 @@
     appendElkEdges(graphGroup, data, layout);
     appendElkNodes(graphGroup, data, layout);
     svg.appendChild(graphGroup);
-    appendElkLegend(svg, data, padding, height - padding - 26);
+    appendElkLegend(svg, legendPlan, height - padding - legendPlan.height);
     return svg;
   }
 
@@ -1404,31 +1410,54 @@
     group.appendChild(nodesLayer);
   }
 
-  function appendElkLegend(svg, data, x, y) {
-    if (!data.perspectives || data.perspectives.length === 0) return;
-    const group = svgElement("g", { class: "issue-map-legend" });
-    let cursorX = x;
-    data.perspectives.forEach(function (perspective) {
+  function createElkLegendPlan(data, minX, maxX) {
+    const perspectives = data.perspectives || [];
+    const items = [];
+    let cursorX = minX;
+    let row = 0;
+    perspectives.forEach(function (perspective) {
       const label = perspective.label || perspective.id;
       const color = normalizeColor(perspective.color, "#7d8790");
       const width = Math.max(72, Array.from(label).length * 12 + 32);
-      group.appendChild(svgElement("rect", {
+      if (cursorX > minX && cursorX + width > maxX) {
+        row += 1;
+        cursorX = minX;
+      }
+      items.push({
+        label: label,
+        color: color,
         x: cursorX,
-        y: y - 15,
-        width: 12,
-        height: 12,
+        y: row * ELK_MAP.legendRowHeight
+      });
+      cursorX += width + ELK_MAP.legendItemGap;
+    });
+    return {
+      items: items,
+      height: items.length > 0 ? (row + 1) * ELK_MAP.legendRowHeight : 0
+    };
+  }
+
+  function appendElkLegend(svg, legendPlan, y) {
+    if (!legendPlan.items.length) return;
+    const group = svgElement("g", { class: "issue-map-legend" });
+    legendPlan.items.forEach(function (item) {
+      const rowY = y + item.y;
+      group.appendChild(svgElement("rect", {
+        x: item.x,
+        y: rowY + 2,
+        width: ELK_MAP.legendSwatchSize,
+        height: ELK_MAP.legendSwatchSize,
         rx: 2,
-        fill: color
+        fill: item.color
       }));
       const text = svgElement("text", {
-        x: cursorX + 18,
-        y: y - 5,
+        x: item.x + ELK_MAP.legendSwatchSize + 6,
+        y: rowY + 12,
         "font-size": 12,
         fill: "#3b4540"
       });
-      text.textContent = label;
+      text.textContent = item.label;
       group.appendChild(text);
-      cursorX += width;
     });
     svg.appendChild(group);
   }
